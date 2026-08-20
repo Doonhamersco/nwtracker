@@ -5,12 +5,12 @@ import { Film } from "lucide-react"
 import { DiaryCard } from "@/components/diaries/DiaryCard"
 import { DiaryForm } from "@/components/diaries/DiaryForm"
 import { DiaryPlayer } from "@/components/diaries/DiaryPlayer"
-import type { VideoDiaryRow } from "@/lib/services/diaries"
+import type { VideoDiary } from "@/components/diaries/types"
 
 type FormMode = { kind: "create" } | { kind: "edit"; diaryId: string }
 
-function groupByYear(diaries: VideoDiaryRow[]): Array<[string, VideoDiaryRow[]]> {
-  const groups = new Map<string, VideoDiaryRow[]>()
+function groupByYear(diaries: VideoDiary[]): Array<[string, VideoDiary[]]> {
+  const groups = new Map<string, VideoDiary[]>()
   for (const diary of diaries) {
     const year = diary.recordedAt.slice(0, 4)
     const list = groups.get(year) ?? []
@@ -21,13 +21,14 @@ function groupByYear(diaries: VideoDiaryRow[]): Array<[string, VideoDiaryRow[]]>
 }
 
 export default function DiariesPage() {
-  const [diaries, setDiaries] = useState<VideoDiaryRow[]>([])
+  const [diaries, setDiaries] = useState<VideoDiary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [formMode, setFormMode] = useState<FormMode | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
   const playerRef = useRef<HTMLDivElement>(null)
+  const shouldScrollRef = useRef(false)
 
   const selected = diaries.find((d) => d.id === selectedId) ?? null
   const editingItem =
@@ -38,15 +39,13 @@ export default function DiariesPage() {
       setError(null)
       const res = await fetch("/api/diaries")
       if (!res.ok) throw new Error("Failed to load diaries")
-      const data = (await res.json()) as VideoDiaryRow[]
+      const data = (await res.json()) as VideoDiary[]
       setDiaries(data)
-      if (selectId) {
-        setSelectedId(selectId)
-      } else if (selectedId && !data.some((d) => d.id === selectedId)) {
-        setSelectedId(data[0]?.id ?? null)
-      } else if (!selectedId && data.length > 0) {
-        setSelectedId(data[0].id)
-      }
+      setSelectedId((current) => {
+        if (selectId) return selectId
+        if (current && data.some((d) => d.id === current)) return current
+        return data[0]?.id ?? null
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
@@ -87,12 +86,14 @@ export default function DiariesPage() {
   }, [formMode])
 
   useEffect(() => {
-    if (selected && !formMode) {
+    if (!shouldScrollRef.current) return
+    shouldScrollRef.current = false
+    if (!formMode) {
       playerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
     }
-  }, [selectedId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedId, formMode])
 
-  function handleSaved(diary: VideoDiaryRow) {
+  function handleSaved(diary: VideoDiary) {
     setFormMode(null)
     void fetchDiaries(diary.id)
   }
@@ -190,6 +191,7 @@ export default function DiariesPage() {
                     diary={diary}
                     selected={diary.id === selectedId}
                     onSelect={() => {
+                      shouldScrollRef.current = true
                       setFormMode(null)
                       setSelectedId(diary.id)
                     }}

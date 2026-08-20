@@ -1,14 +1,13 @@
 "use client"
 
 import { youtubeThumbnailUrl } from "@/lib/youtube"
-import { Card } from "@/components/ui/Card"
-import { Film } from "lucide-react"
-import type { VideoDiaryRow } from "@/lib/services/diaries"
+import { Play } from "lucide-react"
+import type { VideoDiary } from "./types"
 import { formatRecordedDate } from "./formatDate"
 import { cn } from "@/lib/utils"
 
 interface DiaryCardProps {
-  diary: VideoDiaryRow
+  diary: VideoDiary
   selected: boolean
   onSelect: () => void
 }
@@ -16,10 +15,12 @@ interface DiaryCardProps {
 export function DiaryCard({ diary, selected, onSelect }: DiaryCardProps) {
   return (
     <button type="button" onClick={onSelect} className="w-full text-left">
-      <Card
+      <div
         className={cn(
-          "flex gap-4 p-3 transition-colors sm:p-4",
-          selected ? "border-accent/50 bg-accent/5" : "hover:bg-bg-hover"
+          "flex gap-4 rounded-2xl border p-3 transition-colors sm:p-4",
+          selected
+            ? "border-accent/50 bg-accent/5"
+            : "border-border bg-bg-card hover:bg-bg-hover"
         )}
       >
         <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-lg bg-bg-base sm:h-24 sm:w-40">
@@ -29,8 +30,8 @@ export function DiaryCard({ diary, selected, onSelect }: DiaryCardProps) {
             alt=""
             className="h-full w-full object-cover"
           />
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
-            <Film size={18} className="text-white/80" />
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
+            <Play size={18} className="fill-white/90 text-white/90" />
           </div>
         </div>
         <div className="min-w-0 flex-1 py-0.5">
@@ -42,7 +43,7 @@ export function DiaryCard({ diary, selected, onSelect }: DiaryCardProps) {
             <p className="mt-1 line-clamp-2 text-sm text-muted">{diary.notes}</p>
           )}
         </div>
-      </Card>
+      </div>
     </button>
   )
 }

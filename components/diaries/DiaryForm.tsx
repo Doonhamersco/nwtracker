@@ -2,11 +2,11 @@
 
 import { useState } from "react"
 import { youtubeWatchUrl } from "@/lib/youtube"
-import type { VideoDiaryRow } from "@/lib/services/diaries"
+import type { VideoDiary } from "./types"
 
 interface DiaryFormProps {
-  initial?: VideoDiaryRow
-  onSuccess: (diary: VideoDiaryRow) => void
+  initial?: VideoDiary
+  onSuccess: (diary: VideoDiary) => void
   onCancel: () => void
 }
 
@@ -53,7 +53,7 @@ export function DiaryForm({ initial, onSuccess, onCancel }: DiaryFormProps) {
         throw new Error(data.detail ?? data.error ?? "Failed to save diary")
       }
 
-      const saved = (await res.json()) as VideoDiaryRow
+      const saved = (await res.json()) as VideoDiary
       onSuccess(saved)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")

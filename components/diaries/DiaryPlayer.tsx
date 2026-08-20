@@ -2,11 +2,11 @@
 
 import { youtubeEmbedUrl, youtubeWatchUrl } from "@/lib/youtube"
 import { ExternalLink } from "lucide-react"
-import type { VideoDiaryRow } from "@/lib/services/diaries"
+import type { VideoDiary } from "./types"
 import { formatRecordedDate } from "./formatDate"
 
 interface DiaryPlayerProps {
-  diary: VideoDiaryRow
+  diary: VideoDiary
   onEdit: () => void
   onDelete: () => void
 }
