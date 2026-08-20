@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hevyValueForMetric, readingsFromHevyStats } from "@/lib/hevy/metrics";
+import { hevyValueForMetric, readingsFromHevyStats, hevyMetricsAsOf } from "@/lib/hevy/metrics";
 import type { HevyStats } from "@/lib/hevy/types";
 
 const stats: HevyStats = {
@@ -42,3 +42,50 @@ describe("hevyValueForMetric", () => {
     expect(hevyValueForMetric("Monthly Income", stats)).toBeNull();
   });
 });
+
+describe("hevyMetricsAsOf", () => {
+  it("counts sessions and rounded volume in the 30 days up to asOf", () => {
+    const workouts = [
+      workout("2026-06-01T10:00:00.000Z", 1000.4),
+      workout("2026-06-13T12:00:00.000Z", 2000.4),
+      workout("2026-05-01T10:00:00.000Z", 9999),
+      workout("2026-06-14T10:00:00.000Z", 500),
+    ];
+
+    const result = hevyMetricsAsOf(workouts, new Date("2026-06-13T13:32:50.920Z"));
+    expect(result.sessions).toBe(2);
+    expect(result.volumeKg).toBe(1000 + 2000);
+  });
+});
+
+function workout(start_time: string, volume: number) {
+  return {
+    id: start_time,
+    title: "Test",
+    description: null,
+    start_time,
+    end_time: start_time,
+    created_at: start_time,
+    updated_at: start_time,
+    exercises: [
+      {
+        index: 0,
+        title: "Squat",
+        notes: null,
+        exercise_template_id: "x",
+        supersets_id: null,
+        sets: [
+          {
+            index: 0,
+            set_type: "normal" as const,
+            weight_kg: volume,
+            reps: 1,
+            distance_meters: null,
+            duration_seconds: null,
+            rpe: null,
+          },
+        ],
+      },
+    ],
+  };
+}

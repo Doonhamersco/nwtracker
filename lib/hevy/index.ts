@@ -1,3 +1,3 @@
 export { hevyClient, HevyApiError } from "./client";
-export { hevyValueForMetric, readingsFromHevyStats } from "./metrics";
+export { hevyValueForMetric, readingsFromHevyStats, hevyMetricsAsOf } from "./metrics";
 export type * from "./types";
