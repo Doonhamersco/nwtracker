@@ -87,7 +87,7 @@ async function fetchAllMeasurements(): Promise<HevyBodyMeasurement[]> {
   while (page <= pageCount) {
     const res = await get<BodyMeasurementsResponse>("/v1/body_measurements", {
       page,
-      pageSize: 100,
+      pageSize: 10,
     });
     all.push(...res.body_measurements);
     pageCount = res.page_count;

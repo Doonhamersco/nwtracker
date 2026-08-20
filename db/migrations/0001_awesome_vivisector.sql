@@ -1,0 +1,1 @@
+ALTER TABLE `accounts` ADD `coingecko_id` text;

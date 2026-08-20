@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import type { HevyStats } from "@/lib/hevy/types";
 
+const GYM_SESSION_GOAL = 12;
+
 // ─── Mini bar chart ───────────────────────────────────────────────────────────
 
 function VolumeChart({ data }: { data: HevyStats["recent_volume"] }) {
@@ -34,17 +36,22 @@ function StatPill({
   label,
   value,
   accent = false,
+  danger = false,
 }: {
   label: string;
   value: string | number;
   accent?: boolean;
+  danger?: boolean;
 }) {
+  const colorClass = danger
+    ? "text-red-400"
+    : accent
+    ? "text-emerald-400"
+    : "text-zinc-100";
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-zinc-500 uppercase tracking-wide">{label}</span>
-      <span className={`text-xl font-semibold ${accent ? "text-emerald-400" : "text-zinc-100"}`}>
-        {value}
-      </span>
+      <span className={`text-xl font-semibold ${colorClass}`}>{value}</span>
     </div>
   );
 }
@@ -115,7 +122,11 @@ export default function HevyWidget() {
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
             <StatPill label="Total" value={stats.total_workouts.toLocaleString()} accent />
             <StatPill label="This week" value={stats.workouts_this_week} />
-            <StatPill label="This month" value={stats.workouts_this_month} />
+            <StatPill
+              label="This month"
+              value={`${stats.workouts_this_month} / ${GYM_SESSION_GOAL}`}
+              danger={stats.workouts_this_month < GYM_SESSION_GOAL}
+            />
             <StatPill label="Avg duration" value={`${stats.avg_duration_minutes}m`} />
           </div>
 
