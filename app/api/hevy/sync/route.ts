@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { hevyClient, HevyApiError } from "@/lib/hevy/client";
+import { fillMissingHevyReadingsForLatestSnapshot } from "@/lib/services/checkin";
 
 export const dynamic = "force-dynamic";
 
 /**
  * POST /api/hevy/sync
  *
- * Verifies the API key, fetches a quick summary, and returns it.
- * Once the database layer is in place this route will persist data
- * to the DB; for now it acts as a connectivity check / dry-run.
+ * Verifies the API key, fetches a summary, and attaches Hevy life-metric
+ * readings to the latest snapshot when they are missing.
  */
 export async function POST() {
   try {
@@ -18,11 +18,14 @@ export async function POST() {
       hevyClient.getStats(),
     ]);
 
+    const repaired = await fillMissingHevyReadingsForLatestSnapshot();
+
     return NextResponse.json({
       ok: true,
       user: userInfo.user,
       total_workouts: count,
       stats,
+      repaired,
       synced_at: new Date().toISOString(),
     });
   } catch (err) {

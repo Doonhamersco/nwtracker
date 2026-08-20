@@ -1,9 +1,11 @@
-import { getSnapshotHistory, getSnapshotById } from "@/lib/services/checkin"
+import { getSnapshotHistory, getSnapshotById, fillMissingHevyReadingsForLatestSnapshot } from "@/lib/services/checkin"
 import { db } from "@/db/client"
 import { lifeMetricDefinitions } from "@/db/schema"
 import { MetricsClient } from "./MetricsClient"
 
 export default async function MetricsPage() {
+  await fillMissingHevyReadingsForLatestSnapshot()
+
   // Fetch last 12 committed snapshots
   const snapshots = getSnapshotHistory(12)
 

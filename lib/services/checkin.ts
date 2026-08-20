@@ -10,7 +10,7 @@
  */
 
 import { randomUUID } from "crypto";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import {
   accounts,
@@ -24,6 +24,7 @@ import {
 import { fetchAllRatesForAccounts, type FxRateResult } from "./fx";
 import { computeNetWorthFromInputs } from "@/lib/engine/net-worth";
 import { hevyClient } from "@/lib/hevy/client";
+import { hevyValueForMetric, readingsFromHevyStats } from "@/lib/hevy/metrics";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -206,17 +207,11 @@ export async function buildCheckinDraft(): Promise<CheckinDraft> {
       const stats = await hevyClient.getStats();
       for (const dm of draftMetrics) {
         if (!dm.isHevyMetric) continue;
-        if (dm.metricName.includes("Workout Sessions")) {
-          dm.lastValue = stats.workouts_this_month;
-        } else if (dm.metricName.includes("Training Volume")) {
-          const total = stats.recent_volume.reduce((s, v) => s + v.total_volume_kg, 0);
-          dm.lastValue = Math.round(total * 10) / 10;
-        } else if (dm.metricName.includes("Personal Records")) {
-          dm.lastValue = 0;
-        }
+        const live = hevyValueForMetric(dm.metricName, stats);
+        if (live !== null) dm.lastValue = live;
       }
-    } catch {
-      // HEVY_API_KEY not set or API unreachable — keep last snapshot values silently
+    } catch (err) {
+      console.error("[checkin] Hevy pre-fill failed", err);
     }
   }
 
@@ -283,6 +278,12 @@ export async function commitCheckin(
 
   const snapshotId = randomUUID();
   const takenAt = input.takenAt ?? new Date().toISOString();
+  const hevyMetricReadings = await fetchHevyMetricReadings();
+  const hevyMetricIds = new Set(hevyMetricReadings.map((m) => m.metricId));
+  const metricsToInsert = [
+    ...input.metrics.filter((m) => !hevyMetricIds.has(m.metricId)),
+    ...hevyMetricReadings,
+  ];
 
   // Everything in a single transaction — all or nothing
   db.transaction((tx) => {
@@ -333,8 +334,8 @@ export async function commitCheckin(
         .run();
     }
 
-    // 4. Insert life metric readings
-    for (const m of input.metrics) {
+    // 4. Insert life metric readings (Hevy values always come from the live API)
+    for (const m of metricsToInsert) {
       tx.insert(lifeMetricReadings)
         .values({
           id: randomUUID(),
@@ -348,9 +349,96 @@ export async function commitCheckin(
   });
 
   // 5. Record a Hevy sync log if any submitted metrics came from Hevy
-  await insertHevySyncLogIfNeeded(snapshotId, input.metrics);
+  await insertHevySyncLogIfNeeded(snapshotId, metricsToInsert);
 
   return { snapshotId, netWorthGbp, takenAt };
+}
+
+// ─── Hevy auto-sync ───────────────────────────────────────────────────────────
+
+const HEVY_REPAIR_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function fetchHevyMetricReadings(): Promise<SubmitMetricReading[]> {
+  const hevyDefs = db
+    .select({ id: lifeMetricDefinitions.id, name: lifeMetricDefinitions.name })
+    .from(lifeMetricDefinitions)
+    .where(eq(lifeMetricDefinitions.isHevyMetric, true))
+    .all();
+
+  if (hevyDefs.length === 0) return [];
+
+  try {
+    const stats = await hevyClient.getStats();
+    return readingsFromHevyStats(hevyDefs, stats);
+  } catch (err) {
+    console.error("[checkin] Hevy auto-sync failed", err);
+    return [];
+  }
+}
+
+/**
+ * If the newest snapshot is recent and has no Hevy readings, pull live stats
+ * and attach them. Used to repair check-ins that missed auto-sync.
+ */
+export async function fillMissingHevyReadingsForLatestSnapshot(): Promise<boolean> {
+  const [latest] = db
+    .select({ id: snapshots.id, takenAt: snapshots.takenAt })
+    .from(snapshots)
+    .orderBy(desc(snapshots.takenAt))
+    .limit(1)
+    .all();
+
+  if (!latest) return false;
+
+  const takenAtMs = Date.parse(latest.takenAt.includes("T") ? latest.takenAt : latest.takenAt.replace(" ", "T"));
+  if (!Number.isFinite(takenAtMs) || Date.now() - takenAtMs > HEVY_REPAIR_MAX_AGE_MS) {
+    return false;
+  }
+
+  const hevyDefs = db
+    .select({ id: lifeMetricDefinitions.id })
+    .from(lifeMetricDefinitions)
+    .where(eq(lifeMetricDefinitions.isHevyMetric, true))
+    .all();
+
+  if (hevyDefs.length === 0) return false;
+
+  const existing = db
+    .select({ id: lifeMetricReadings.id })
+    .from(lifeMetricReadings)
+    .where(
+      and(
+        eq(lifeMetricReadings.snapshotId, latest.id),
+        inArray(
+          lifeMetricReadings.metricId,
+          hevyDefs.map((d) => d.id),
+        ),
+      ),
+    )
+    .limit(1)
+    .all();
+
+  if (existing.length > 0) return false;
+
+  const readings = await fetchHevyMetricReadings();
+  if (readings.length === 0) return false;
+
+  db.transaction((tx) => {
+    for (const m of readings) {
+      tx.insert(lifeMetricReadings)
+        .values({
+          id: randomUUID(),
+          snapshotId: latest.id,
+          metricId: m.metricId,
+          value: m.value,
+          notes: m.notes ?? null,
+        })
+        .run();
+    }
+  });
+
+  await insertHevySyncLogIfNeeded(latest.id, readings);
+  return true;
 }
 
 // ─── Hevy sync log ────────────────────────────────────────────────────────────

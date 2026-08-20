@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const page = Number(searchParams.get("page") ?? "1");
-  const pageSize = Math.min(Number(searchParams.get("pageSize") ?? "10"), 100);
+  const pageSize = Math.min(Number(searchParams.get("pageSize") ?? "10"), 10);
 
   try {
     const data = await hevyClient.getWorkouts(page, pageSize);

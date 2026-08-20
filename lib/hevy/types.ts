@@ -267,6 +267,8 @@ export interface HevyStats {
   total_workouts: number;
   workouts_this_week: number;
   workouts_this_month: number;
+  /** Workouts whose start_time falls in the last 30 days */
+  workouts_last_30d: number;
   /** In minutes, average over last 12 workouts */
   avg_duration_minutes: number;
   /** Most recent body weight in kg (null if not tracked in Hevy) */

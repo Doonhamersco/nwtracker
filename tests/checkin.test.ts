@@ -38,8 +38,16 @@ vi.mock("@/lib/services/fx", () => ({
   ),
 }));
 
+const getStatsMock = vi.fn();
+vi.mock("@/lib/hevy/client", () => ({
+  hevyClient: {
+    getStats: (...args: unknown[]) => getStatsMock(...args),
+  },
+  HevyApiError: class HevyApiError extends Error {},
+}));
+
 // Now import the service AFTER mocks are in place
-const { buildCheckinDraft, commitCheckin, getSnapshotHistory } = await import(
+const { buildCheckinDraft, commitCheckin, getSnapshotHistory, fillMissingHevyReadingsForLatestSnapshot } = await import(
   "@/lib/services/checkin"
 );
 const clientModule = await import("@/db/client");
@@ -50,6 +58,8 @@ const sqlite = (clientModule as unknown as { _sqlite: import("better-sqlite3").D
 
 beforeEach(() => {
   resetAllTables(sqlite);
+  getStatsMock.mockReset();
+  getStatsMock.mockRejectedValue(new Error("HEVY_API_KEY environment variable is not set."));
 });
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -343,5 +353,142 @@ describe("getSnapshotHistory", () => {
     expect(netWorths[0]).toBe(15000);
     expect(netWorths[1]).toBe(12000);
     expect(netWorths[2]).toBe(10000);
+  });
+});
+
+// ─── Hevy auto-sync ───────────────────────────────────────────────────────────
+
+const mockHevyStats = {
+  total_workouts: 120,
+  workouts_this_week: 3,
+  workouts_this_month: 8,
+  workouts_last_30d: 11,
+  avg_duration_minutes: 62,
+  latest_weight_kg: 82.1,
+  latest_weight_date: "2026-08-20",
+  recent_volume: [
+    { date: "2026-08-19", total_volume_kg: 5000, duration_minutes: 60, set_count: 20 },
+    { date: "2026-08-18", total_volume_kg: 4000, duration_minutes: 55, set_count: 18 },
+  ],
+  last_workout_at: "2026-08-19T18:00:00.000Z",
+};
+
+function insertHevyMetrics() {
+  const sessions = insertMetricDef({
+    name: "Workout Sessions (30d)",
+    unit: "sessions",
+    isHevyMetric: true,
+    sortOrder: 4,
+  });
+  const volume = insertMetricDef({
+    name: "Training Volume (30d)",
+    unit: "kg",
+    isHevyMetric: true,
+    sortOrder: 5,
+  });
+  const prs = insertMetricDef({
+    name: "Personal Records (30d)",
+    unit: "PRs",
+    isHevyMetric: true,
+    sortOrder: 6,
+  });
+  return { sessions, volume, prs };
+}
+
+describe("Hevy auto-sync", () => {
+  it("pre-fills Hevy metric drafts from live stats", async () => {
+    insertHevyMetrics();
+    getStatsMock.mockResolvedValue(mockHevyStats);
+
+    const draft = await buildCheckinDraft();
+    const sessions = draft.metrics.find((m) => m.metricName.includes("Workout Sessions"));
+    const volume = draft.metrics.find((m) => m.metricName.includes("Training Volume"));
+    const prs = draft.metrics.find((m) => m.metricName.includes("Personal Records"));
+
+    expect(sessions?.lastValue).toBe(11);
+    expect(volume?.lastValue).toBe(9000);
+    expect(prs?.lastValue).toBe(0);
+  });
+
+  it("writes Hevy readings on commit even if the client omitted them", async () => {
+    const account = insertAccount({ name: "Hevy Commit Account" });
+    const { sessions, volume, prs } = insertHevyMetrics();
+    getStatsMock.mockResolvedValue(mockHevyStats);
+
+    const result = await commitCheckin({
+      valuations: [{ accountId: account.id, valueNative: 1000, isCarriedForward: false }],
+      metrics: [],
+      isPartial: false,
+    });
+
+    const readings = db
+      .select()
+      .from(lifeMetricReadings)
+      .where(eq(lifeMetricReadings.snapshotId, result.snapshotId))
+      .all();
+
+    expect(readings.find((r) => r.metricId === sessions.id)?.value).toBe(11);
+    expect(readings.find((r) => r.metricId === volume.id)?.value).toBe(9000);
+    expect(readings.find((r) => r.metricId === prs.id)?.value).toBe(0);
+  });
+
+  it("repairs a recent snapshot that is missing Hevy readings", async () => {
+    const { sessions, volume } = insertHevyMetrics();
+    getStatsMock.mockResolvedValue(mockHevyStats);
+
+    const snapshotId = randomUUID();
+    db.insert(snapshots)
+      .values({
+        id: snapshotId,
+        takenAt: new Date().toISOString(),
+        isPartial: false,
+        netWorthGbp: 1000,
+      })
+      .run();
+
+    const filled = await fillMissingHevyReadingsForLatestSnapshot();
+    expect(filled).toBe(true);
+
+    const readings = db
+      .select()
+      .from(lifeMetricReadings)
+      .where(eq(lifeMetricReadings.snapshotId, snapshotId))
+      .all();
+
+    expect(readings.find((r) => r.metricId === sessions.id)?.value).toBe(11);
+    expect(readings.find((r) => r.metricId === volume.id)?.value).toBe(9000);
+  });
+
+  it("does not overwrite Hevy readings that are already present", async () => {
+    const { sessions } = insertHevyMetrics();
+    getStatsMock.mockResolvedValue(mockHevyStats);
+
+    const snapshotId = randomUUID();
+    db.insert(snapshots)
+      .values({
+        id: snapshotId,
+        takenAt: new Date().toISOString(),
+        isPartial: false,
+        netWorthGbp: 1000,
+      })
+      .run();
+    db.insert(lifeMetricReadings)
+      .values({
+        id: randomUUID(),
+        snapshotId,
+        metricId: sessions.id,
+        value: 4,
+      })
+      .run();
+
+    const filled = await fillMissingHevyReadingsForLatestSnapshot();
+    expect(filled).toBe(false);
+
+    const [reading] = db
+      .select()
+      .from(lifeMetricReadings)
+      .where(eq(lifeMetricReadings.snapshotId, snapshotId))
+      .all();
+    expect(reading.value).toBe(4);
   });
 });

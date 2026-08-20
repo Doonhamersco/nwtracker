@@ -17,6 +17,9 @@ import type {
 
 const BASE_URL = "https://api.hevyapp.com";
 
+/** Workouts, measurements, and routines reject pageSize > 10. Templates allow 100. */
+const HEVY_LIST_PAGE_SIZE = 10;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getApiKey(): string {
@@ -70,9 +73,35 @@ async function fetchAllWorkouts(): Promise<HevyWorkout[]> {
   let pageCount = 1;
 
   while (page <= pageCount) {
-    const res = await get<WorkoutsResponse>("/v1/workouts", { page, pageSize: 100 });
+    const res = await get<WorkoutsResponse>("/v1/workouts", {
+      page,
+      pageSize: HEVY_LIST_PAGE_SIZE,
+    });
     all.push(...res.workouts);
     pageCount = res.page_count;
+    page++;
+  }
+
+  return all;
+}
+
+/** Newest-first pages until a workout is older than `oldestNeeded`. */
+async function fetchWorkoutsUntil(oldestNeeded: Date): Promise<HevyWorkout[]> {
+  const all: HevyWorkout[] = [];
+  let page = 1;
+  let pageCount = 1;
+
+  while (page <= pageCount) {
+    const res = await get<WorkoutsResponse>("/v1/workouts", {
+      page,
+      pageSize: HEVY_LIST_PAGE_SIZE,
+    });
+    all.push(...res.workouts);
+    pageCount = res.page_count;
+
+    if (res.workouts.length === 0) break;
+    const oldestOnPage = res.workouts[res.workouts.length - 1];
+    if (new Date(oldestOnPage.start_time) < oldestNeeded) break;
     page++;
   }
 
@@ -155,7 +184,7 @@ export const hevyClient = {
   async getExerciseHistory(
     exerciseTemplateId: string,
     page = 1,
-    pageSize = 50,
+    pageSize = HEVY_LIST_PAGE_SIZE,
   ): Promise<ExerciseHistoryResponse> {
     return get<ExerciseHistoryResponse>(`/v1/exercise_history/${exerciseTemplateId}`, {
       page,
@@ -169,7 +198,7 @@ export const hevyClient = {
     let pageCount = 1;
 
     while (page <= pageCount) {
-      const res = await this.getExerciseHistory(exerciseTemplateId, page, 100);
+      const res = await this.getExerciseHistory(exerciseTemplateId, page, HEVY_LIST_PAGE_SIZE);
       all.push(...res.exercise_history);
       pageCount = res.page_count;
       page++;
@@ -178,7 +207,7 @@ export const hevyClient = {
     return all;
   },
 
-  async getRoutines(page = 1, pageSize = 25): Promise<RoutinesResponse> {
+  async getRoutines(page = 1, pageSize = HEVY_LIST_PAGE_SIZE): Promise<RoutinesResponse> {
     return get<RoutinesResponse>("/v1/routines", { page, pageSize });
   },
 
@@ -188,7 +217,7 @@ export const hevyClient = {
     let pageCount = 1;
 
     while (page <= pageCount) {
-      const res = await this.getRoutines(page, 100);
+      const res = await this.getRoutines(page, HEVY_LIST_PAGE_SIZE);
       all.push(...res.routines);
       pageCount = res.page_count;
       page++;
@@ -203,26 +232,19 @@ export const hevyClient = {
    */
   async getStats(): Promise<HevyStats> {
     const now = new Date();
-
-    const [firstPageRes, countRes, measurementsRes] = await Promise.all([
-      get<WorkoutsResponse>("/v1/workouts", { page: 1, pageSize: 100 }),
-      get<WorkoutsCountResponse>("/v1/workouts/count"),
-      get<BodyMeasurementsResponse>("/v1/body_measurements", { page: 1, pageSize: 10 }),
-    ]);
-
-    const workouts = [...firstPageRes.workouts];
-
-    if (firstPageRes.page_count > 1) {
-      const secondPage = await get<WorkoutsResponse>("/v1/workouts", {
-        page: 2,
-        pageSize: 100,
-      });
-      workouts.push(...secondPage.workouts);
-    }
-
     const startOfWeek = startOfISOWeek(now);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const oldestNeeded = new Date(Math.min(startOfMonth.getTime(), thirtyDaysAgo.getTime()));
+
+    const [workouts, countRes, measurementsRes] = await Promise.all([
+      fetchWorkoutsUntil(oldestNeeded),
+      get<WorkoutsCountResponse>("/v1/workouts/count"),
+      get<BodyMeasurementsResponse>("/v1/body_measurements", {
+        page: 1,
+        pageSize: HEVY_LIST_PAGE_SIZE,
+      }),
+    ]);
 
     const workoutsThisWeek = workouts.filter(
       (w) => new Date(w.start_time) >= startOfWeek,
@@ -275,6 +297,7 @@ export const hevyClient = {
       total_workouts: countRes.workout_count,
       workouts_this_week: workoutsThisWeek,
       workouts_this_month: workoutsThisMonth,
+      workouts_last_30d: recentVolume.length,
       avg_duration_minutes: Math.round(avgDuration),
       latest_weight_kg: latestWithWeight?.weight_kg ?? null,
       latest_weight_date: latestWithWeight?.date ?? null,
