@@ -1,11 +1,21 @@
+# fly.toml app configuration file generated for nwtracker on 2026-08-20T22:23:24Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
 app = 'nwtracker'
 primary_region = 'lhr'
 
 [build]
 
 [env]
-  PORT = '3000'
   NODE_ENV = 'production'
+  PORT = '3000'
+
+[[mounts]]
+  source = 'nwtracker_data'
+  destination = '/data'
+  initial_size = '1gb'
 
 [http_service]
   internal_port = 3000
@@ -18,8 +28,4 @@ primary_region = 'lhr'
   memory = '512mb'
   cpu_kind = 'shared'
   cpus = 1
-
-[[mounts]]
-  source = 'nwtracker_data'
-  destination = '/data'
-  initial_size = '1gb'
+  memory_mb = 512
