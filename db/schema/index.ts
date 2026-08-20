@@ -6,3 +6,4 @@ export * from "./life-metrics";
 export * from "./goals";
 export * from "./files";
 export * from "./events";
+export * from "./diaries";

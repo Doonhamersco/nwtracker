@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Wallet,
   Activity,
+  Film,
   Target,
   BarChart2,
   Settings,
@@ -31,6 +32,7 @@ const navLinks = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/assets", label: "Accounts", icon: Wallet },
   { href: "/metrics", label: "Life Metrics", icon: Activity },
+  { href: "/diaries", label: "Diaries", icon: Film },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/reports", label: "Reports", icon: BarChart2 },
 ]
