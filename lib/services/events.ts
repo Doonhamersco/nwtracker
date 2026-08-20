@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { eq, asc } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db } from "@/db/client";
 import { notableEvents } from "@/db/schema";
 import type { CreateEventInput, UpdateEventInput } from "@/lib/validators/events";
@@ -7,7 +7,7 @@ import type { CreateEventInput, UpdateEventInput } from "@/lib/validators/events
 export type NotableEventRow = typeof notableEvents.$inferSelect;
 
 export function listEvents(): NotableEventRow[] {
-  return db.select().from(notableEvents).orderBy(asc(notableEvents.date)).all();
+  return db.select().from(notableEvents).orderBy(desc(notableEvents.date)).all();
 }
 
 export function getEventById(id: string): NotableEventRow | null {

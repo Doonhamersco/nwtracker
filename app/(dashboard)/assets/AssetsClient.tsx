@@ -30,9 +30,9 @@ function fmt(value: number): string {
 }
 
 function Change({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-[#94A3B8] text-xs">—</span>
+  if (value === null) return <span className="text-muted text-xs">—</span>
   const sign = value >= 0 ? "▲" : "▼"
-  const color = value >= 0 ? "text-[#22C55E]" : "text-[#EF4444]"
+  const color = value >= 0 ? "text-positive" : "text-negative"
   return (
     <span className={`font-mono text-sm ${color}`}>
       {sign} £{Math.abs(value).toLocaleString("en-GB", { maximumFractionDigits: 0 })}
@@ -67,20 +67,20 @@ function Section({
         .map((acc) => (
           <tr
             key={acc.id}
-            className="border-b border-[#222222] hover:bg-[#1a1a1a] transition-colors"
+            className="border-b border-border hover:bg-bg-hover transition-colors"
           >
             <td className="px-4 py-3">
               <div>
-                <p className="text-sm font-medium text-[#F1F5F9]">{acc.name}</p>
+                <p className="text-sm font-medium text-text">{acc.name}</p>
                 {acc.institution && (
-                  <p className="text-xs text-[#94A3B8]">{acc.institution}</p>
+                  <p className="text-xs text-muted">{acc.institution}</p>
                 )}
               </div>
             </td>
             <td className="px-4 py-3">
               <Badge variant="neutral">{acc.category}</Badge>
             </td>
-            <td className="px-4 py-3 text-xs text-[#94A3B8] font-mono text-right">
+            <td className="px-4 py-3 text-xs text-muted font-mono text-right">
               {acc.currencyCode !== "GBP" && acc.currentNative !== null
                 ? `${acc.currentNative.toFixed(6)} ${acc.currencyCode}`
                 : "—"}
@@ -88,7 +88,7 @@ function Section({
             <td className="px-4 py-3 text-right">
               <span
                 className={`font-mono text-sm font-medium ${
-                  acc.type === "LIABILITY" ? "text-[#EF4444]" : "text-[#F1F5F9]"
+                  acc.type === "LIABILITY" ? "text-negative" : "text-text"
                 }`}
               >
                 {acc.currentGbp !== null
@@ -120,9 +120,9 @@ export function AssetsClient({ accounts, lastSnapshotDate }: AssetsClientProps) 
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#F1F5F9]">Assets &amp; Liabilities</h1>
+          <h1 className="font-display text-3xl font-medium tracking-tight text-text">Accounts</h1>
           {lastSnapshotDate && (
-            <p className="mt-1 text-sm text-[#94A3B8]">
+            <p className="mt-1 text-sm text-muted">
               Last updated:{" "}
               {new Date(lastSnapshotDate).toLocaleDateString("en-GB", {
                 day: "numeric",
@@ -137,15 +137,15 @@ export function AssetsClient({ accounts, lastSnapshotDate }: AssetsClientProps) 
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
-          { label: "Total Assets", value: totalAssets, color: "#22C55E" },
-          { label: "Total Liabilities", value: totalLiabilities, color: "#EF4444" },
-          { label: "Net Worth", value: netWorth, color: "#22c55e" },
+          { label: "Total Assets", value: totalAssets, color: "#c5a059" },
+          { label: "Total Liabilities", value: totalLiabilities, color: "#e07060" },
+          { label: "Net Worth", value: netWorth, color: "#c5a059" },
         ].map(({ label, value, color }) => (
           <div
             key={label}
-            className="rounded-2xl border border-[#222222] bg-[#111111] p-5"
+            className="rounded-2xl border border-border bg-bg-card p-5"
           >
-            <p className="text-xs font-medium uppercase tracking-wider text-[#94A3B8]">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted">
               {label}
             </p>
             <p className="mt-2 text-xl font-bold whitespace-nowrap sm:text-2xl" style={{ color }}>
@@ -157,18 +157,18 @@ export function AssetsClient({ accounts, lastSnapshotDate }: AssetsClientProps) 
 
       {/* Table */}
       {accounts.length === 0 ? (
-        <div className="rounded-2xl border border-[#222222] bg-[#111111] p-10 text-center text-sm text-[#94A3B8]">
+        <div className="rounded-2xl border border-border bg-bg-card p-10 text-center text-sm text-muted">
           No accounts yet. Add your first account in Settings.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-[#222222] bg-[#111111]">
+        <div className="overflow-x-auto rounded-2xl border border-border bg-bg-card">
           <table className="w-full min-w-[640px]">
             <thead>
-              <tr className="border-b border-[#222222]">
+              <tr className="border-b border-border">
                 {["Account", "Category", "Native", "GBP Value", "MoM Δ", "3M Δ"].map((h) => (
                   <th
                     key={h}
-                    className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[#94A3B8] text-left last:text-right [&:nth-child(n+3)]:text-right"
+                    className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted text-left last:text-right [&:nth-child(n+3)]:text-right"
                   >
                     {h}
                   </th>
@@ -176,8 +176,8 @@ export function AssetsClient({ accounts, lastSnapshotDate }: AssetsClientProps) 
               </tr>
             </thead>
             <tbody>
-              <Section title="Assets" accounts={assets} color="#22C55E" />
-              <Section title="Liabilities" accounts={liabilities} color="#EF4444" />
+              <Section title="Assets" accounts={assets} color="#c5a059" />
+              <Section title="Liabilities" accounts={liabilities} color="#e07060" />
             </tbody>
           </table>
         </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { signIn } from "next-auth/react"
+import { BrandMark } from "@/components/layout/BrandMark"
 
 interface LoginClientProps {
   error?: string
@@ -8,25 +9,22 @@ interface LoginClientProps {
 
 export default function LoginClient({ error }: LoginClientProps) {
   return (
-    <div className="flex min-h-full flex-col items-center justify-center bg-[#0a0a0a] px-4">
+    <div className="flex min-h-full flex-col items-center justify-center bg-bg-base px-4">
       <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#22c55e]">
-            <span className="text-2xl font-bold text-white">N</span>
-          </div>
-          <h1 className="text-3xl font-bold text-[#F1F5F9]">NW Tracker</h1>
-          <p className="mt-2 text-[#94A3B8]">Personal net worth &amp; life metrics</p>
+        <div className="flex flex-col items-center text-center">
+          <BrandMark size="lg" className="mb-3 justify-center" />
+          <p className="mt-2 text-muted">Personal net worth &amp; life metrics</p>
         </div>
 
         {error && (
-          <div className="rounded-lg border border-[#EF4444]/30 bg-[#EF4444]/10 px-4 py-3 text-center text-sm text-[#EF4444]">
+          <div className="rounded-lg border border-negative/30 bg-negative/10 px-4 py-3 text-center text-sm text-negative">
             Access denied. Only authorised accounts may sign in.
           </div>
         )}
 
         <button
           onClick={() => signIn("google", { callbackUrl: "/dashboard" }, { prompt: "select_account" })}
-          className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#222222] bg-[#111111] px-4 py-3 text-sm font-medium text-[#F1F5F9] transition-colors hover:bg-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-[#22c55e] focus:ring-offset-2 focus:ring-offset-[#0a0a0a]"
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-bg-card px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-bg-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-base"
         >
           <GoogleIcon />
           Continue with Google

@@ -22,15 +22,15 @@ export default async function CheckinPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
-            <h1 className="text-2xl font-bold text-[#F1F5F9]">Monthly Check-in</h1>
+            <h1 className="font-display text-3xl font-medium tracking-tight text-text">Monthly Check-in</h1>
             <Link
               href="/dashboard"
-              className="text-sm text-[#94A3B8] hover:text-[#F1F5F9] transition-colors"
+              className="text-sm text-muted hover:text-text transition-colors"
             >
               ← Dashboard
             </Link>
           </div>
-          <p className="text-sm text-[#94A3B8]">
+          <p className="text-sm text-muted">
             {lastDate ? `Last snapshot: ${lastDate}` : "No previous snapshot"}
             {" · "}
             {draft.accounts.length} accounts

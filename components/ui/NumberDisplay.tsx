@@ -25,9 +25,11 @@ export function NumberDisplay({
   return (
     <span
       className={cn(
-        "font-mono tabular-nums",
-        isNegative ? "text-[#EF4444]" : "text-[#F1F5F9]",
-        large && "whitespace-nowrap font-bold text-3xl sm:text-4xl md:text-5xl",
+        "tabular-nums",
+        isNegative ? "text-negative" : "text-text",
+        large
+          ? "whitespace-nowrap font-display font-medium text-5xl sm:text-6xl lg:text-7xl tracking-tight"
+          : "font-mono",
         className
       )}
     >

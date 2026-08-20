@@ -8,7 +8,7 @@ export function ChangeIndicator({ change, percent }: ChangeIndicatorProps) {
 
   const isPositive = change >= 0;
   const arrow = isPositive ? "▲" : "▼";
-  const color = isPositive ? "text-[#22C55E]" : "text-[#EF4444]";
+  const color = isPositive ? "text-positive" : "text-negative";
 
   const absChange = Math.abs(change);
   const formattedChange = new Intl.NumberFormat("en-GB", {

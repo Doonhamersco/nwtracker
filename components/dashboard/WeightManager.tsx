@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Sparkline } from "@/components/metrics/Sparkline";
 
 export interface WeightReading {
   id: string;
@@ -48,17 +49,17 @@ function WeightForm({
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="flex gap-3">
         <div className="flex-1">
-          <label className="block text-xs text-[#94A3B8] mb-1.5">Date</label>
+          <label className="block text-xs text-muted mb-1.5">Date</label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             required
-            className="w-full bg-[#1C1C1E] border border-[#333333] rounded-lg px-3 py-2 text-sm text-[#F1F5F9] focus:outline-none focus:border-[#6366f1] transition-colors"
+            className="w-full bg-bg-hover border border-border-strong rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-accent transition-colors"
           />
         </div>
         <div className="w-32">
-          <label className="block text-xs text-[#94A3B8] mb-1.5">Weight (kg)</label>
+          <label className="block text-xs text-muted mb-1.5">Weight (kg)</label>
           <input
             type="number"
             value={weight}
@@ -68,23 +69,23 @@ function WeightForm({
             max="500"
             placeholder="e.g. 80.5"
             required
-            className="w-full bg-[#1C1C1E] border border-[#333333] rounded-lg px-3 py-2 text-sm font-mono text-[#F1F5F9] placeholder-[#4B5563] focus:outline-none focus:border-[#6366f1] transition-colors"
+            className="w-full bg-bg-hover border border-border-strong rounded-lg px-3 py-2 text-sm font-mono text-text placeholder-placeholder focus:outline-none focus:border-accent transition-colors"
           />
         </div>
       </div>
-      {error && <p className="text-xs text-[#EF4444]">{error}</p>}
+      {error && <p className="text-xs text-negative">{error}</p>}
       <div className="flex gap-2 pt-1">
         <button
           type="submit"
           disabled={saving}
-          className="flex-1 bg-[#6366f1] text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-[#4f46e5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 bg-accent text-bg-base text-sm font-medium px-3 py-2 rounded-lg hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {saving ? "Saving…" : "Log Weight"}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-3 py-2 text-sm text-[#94A3B8] hover:text-[#F1F5F9] transition-colors"
+          className="px-3 py-2 text-sm text-muted hover:text-text transition-colors"
         >
           Cancel
         </button>
@@ -95,15 +96,19 @@ function WeightForm({
 
 export function WeightManager({ readings, onReadingsChange }: WeightManagerProps) {
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
-  // Show the 8 most recent readings
-  const recentReadings = [...readings]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 8);
+  const sorted = [...readings].sort((a, b) => b.date.localeCompare(a.date));
+  const latest = sorted[0] ?? null;
+  const previous = sorted[1] ?? null;
+  const delta = latest && previous ? latest.weightKg - previous.weightKg : null;
+  const sparkData = [...readings]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((r) => r.weightKg);
 
   async function handleAdd(data: WeightFormData) {
     setSaving(true);
@@ -162,91 +167,75 @@ export function WeightManager({ readings, onReadingsChange }: WeightManagerProps
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex h-full flex-col gap-4">
       <div className="flex items-center justify-between">
         <button
           onClick={handleSyncHevy}
           disabled={syncing}
-          className="flex items-center gap-1.5 text-xs text-[#6366f1] hover:text-[#818cf8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="text-xs text-muted hover:text-accent disabled:opacity-50 transition-colors"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            className={syncing ? "animate-spin" : ""}
-          >
-            <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.36-2.64" />
-            <path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.36 2.64" />
-            <polyline points="21 3 21 9 15 9" />
-            <polyline points="3 21 3 15 9 15" />
-          </svg>
           {syncing ? "Syncing…" : "Sync from Hevy"}
         </button>
-        {syncMsg && (
-          <span className="text-xs text-[#94A3B8]">{syncMsg}</span>
-        )}
+        {syncMsg && <span className="text-xs text-muted">{syncMsg}</span>}
       </div>
 
-      {readings.length === 0 && !showAddForm && (
-        <p className="text-xs text-[#4B5563] italic">
-          No weight logs yet. Log your first entry to see it on the chart.
-        </p>
+      {latest ? (
+        <div>
+          <p className="font-display text-4xl font-medium tracking-tight text-text">
+            {latest.weightKg.toFixed(1)}{" "}
+            <span className="text-lg text-muted">kg</span>
+          </p>
+          {delta !== null && (
+            <p className={`mt-1 text-sm ${delta <= 0 ? "text-accent" : "text-muted"}`}>
+              {delta > 0 ? "+" : ""}
+              {delta.toFixed(1)} kg since last log
+            </p>
+          )}
+        </div>
+      ) : (
+        !showAddForm && <p className="text-sm text-muted">No weight logs yet.</p>
       )}
 
-      <div className="space-y-1">
-        {recentReadings.map((r) => (
-          <div
-            key={r.id}
-            className="flex items-center gap-3 group px-3 py-2 rounded-xl hover:bg-[#1C1C1E] transition-colors"
-          >
-            <span
-              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: "#6366f1" }}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-[#F1F5F9] font-mono">{r.weightKg} kg</p>
-              <p className="text-xs text-[#4B5563]">
-                {new Date(r.date + "T12:00:00").toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </p>
-            </div>
-            <button
-              onClick={() => handleDelete(r.id)}
-              disabled={deletingId === r.id}
-              className="p-1.5 text-[#4B5563] hover:text-[#EF4444] transition-colors rounded-md hover:bg-[#222222] opacity-100 md:opacity-0 md:group-hover:opacity-100 disabled:opacity-50"
-              title="Delete"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+      {sparkData.length > 1 && (
+        <div className="h-16">
+          <Sparkline data={sparkData} color="#c5a059" height={64} />
+        </div>
+      )}
+
+      {showHistory && sorted.length > 0 && (
+        <div className="space-y-1">
+          {sorted.slice(0, 6).map((r) => (
+            <div key={r.id} className="group flex items-center gap-3 rounded-lg py-1.5">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm tabular-nums text-text">{r.weightKg} kg</p>
+                <p className="text-xs text-placeholder">
+                  {new Date(r.date + "T12:00:00").toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </p>
+              </div>
+              <button
+                onClick={() => handleDelete(r.id)}
+                disabled={deletingId === r.id}
+                className="rounded-md p-1.5 text-placeholder opacity-100 transition-colors hover:text-negative md:opacity-0 md:group-hover:opacity-100 disabled:opacity-50"
+                title="Delete"
               >
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                <path d="M10 11v6M14 11v6" />
-                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-              </svg>
-            </button>
-          </div>
-        ))}
-        {readings.length > 8 && (
-          <p className="text-xs text-[#4B5563] px-3 py-1">
-            +{readings.length - 8} more entries
-          </p>
-        )}
-      </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6M14 11v6" />
+                  <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showAddForm ? (
-        <div className="bg-[#1C1C1E] border border-[#333333] rounded-xl p-3">
+        <div className="rounded-xl bg-bg-hover p-3">
           <WeightForm
             onSave={handleAdd}
             onCancel={() => setShowAddForm(false)}
@@ -254,23 +243,22 @@ export function WeightManager({ readings, onReadingsChange }: WeightManagerProps
           />
         </div>
       ) : (
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-[#333333] text-sm text-[#4B5563] hover:text-[#94A3B8] hover:border-[#555555] transition-colors"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
+        <div className="mt-auto flex flex-wrap items-center gap-4">
+          {sorted.length > 0 && (
+            <button
+              onClick={() => setShowHistory((v) => !v)}
+              className="text-sm text-accent transition-colors hover:text-accent-hover"
+            >
+              {showHistory ? "Hide history" : "View progress →"}
+            </button>
+          )}
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="text-sm text-accent transition-colors hover:text-accent-hover"
           >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Log Weight
-        </button>
+            Log weight →
+          </button>
+        </div>
       )}
     </div>
   );

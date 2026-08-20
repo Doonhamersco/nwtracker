@@ -51,10 +51,10 @@ function AccountTableRow({ row }: { row: TableRowData }) {
   const isLiability = account.type === "LIABILITY";
 
   return (
-    <tr className="border-b border-[#222222] hover:bg-[#1a1a1a] transition-colors">
+    <tr className="border-b border-border hover:bg-bg-hover transition-colors">
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-[#F1F5F9]">{account.name}</span>
+          <span className="text-sm font-medium text-text">{account.name}</span>
           {valuation.isCarriedForward && (
             <Badge variant="neutral">carried forward</Badge>
           )}
@@ -64,18 +64,18 @@ function AccountTableRow({ row }: { row: TableRowData }) {
         <Badge variant={isLiability ? "negative" : "accent"}>{account.category}</Badge>
       </td>
       <td className="px-4 py-3 text-right">
-        <span className={`font-mono text-sm font-medium ${isLiability ? "text-[#EF4444]" : "text-[#F1F5F9]"}`}>
+        <span className={`font-mono text-sm font-medium ${isLiability ? "text-negative" : "text-text"}`}>
           {isLiability ? "-" : ""}{formatGbp(valuation.valueGbp)}
         </span>
       </td>
       <td className="px-4 py-3 text-right">
-        <span className="font-mono text-xs text-[#94A3B8]">
+        <span className="font-mono text-xs text-muted">
           {formatNative(valuation.valueNative, account.currencyCode)}
         </span>
       </td>
       <td className="px-4 py-3 text-right">
         {momChange !== null ? (
-          <span className={`font-mono text-sm ${momChange >= 0 ? "text-[#22C55E]" : "text-[#EF4444]"}`}>
+          <span className={`font-mono text-sm ${momChange >= 0 ? "text-positive" : "text-negative"}`}>
             {momChange >= 0 ? "▲" : "▼"} £
             {Math.abs(momChange).toLocaleString("en-GB", { maximumFractionDigits: 0 })}
             {momPercent !== null && (
@@ -86,11 +86,11 @@ function AccountTableRow({ row }: { row: TableRowData }) {
             )}
           </span>
         ) : (
-          <span className="text-[#94A3B8] text-xs">—</span>
+          <span className="text-muted text-xs">—</span>
         )}
       </td>
       <td className="px-4 py-3 text-right">
-        <span className="text-xs text-[#94A3B8]">
+        <span className="text-xs text-muted">
           {new Date(valuation.createdAt).toLocaleDateString("en-GB", {
             day: "numeric",
             month: "short",
@@ -130,12 +130,12 @@ function buildRows(
 
 const TABLE_HEADER = (
   <thead>
-    <tr className="border-b border-[#222222]">
+    <tr className="border-b border-border">
       {["Account", "Type", "Value (GBP)", "Native", "MoM Change", "Last Updated"].map(
         (col) => (
           <th
             key={col}
-            className="px-4 py-3 text-xs font-semibold text-[#94A3B8] uppercase tracking-wider text-left last:text-right [&:nth-child(3)]:text-right [&:nth-child(4)]:text-right [&:nth-child(5)]:text-right"
+            className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-left last:text-right [&:nth-child(3)]:text-right [&:nth-child(4)]:text-right [&:nth-child(5)]:text-right"
           >
             {col}
           </th>
@@ -151,7 +151,7 @@ export function AssetsTable({ valuations, accounts, previousValuations }: Assets
 
   if (assetRows.length === 0 && liabilityRows.length === 0) {
     return (
-      <div className="text-center py-8 text-[#94A3B8] text-sm">
+      <div className="text-center py-8 text-muted text-sm">
         No account data in this snapshot
       </div>
     );
@@ -167,7 +167,7 @@ export function AssetsTable({ valuations, accounts, previousValuations }: Assets
               <tr>
                 <td
                   colSpan={6}
-                  className="px-4 py-2 text-xs font-semibold text-[#22c55e] uppercase tracking-wider bg-[#22c55e]/5"
+                  className="px-4 py-2 text-xs font-semibold text-accent uppercase tracking-wider bg-accent/5"
                 >
                   Assets
                 </td>
@@ -182,7 +182,7 @@ export function AssetsTable({ valuations, accounts, previousValuations }: Assets
               <tr>
                 <td
                   colSpan={6}
-                  className="px-4 py-2 text-xs font-semibold text-[#EF4444] uppercase tracking-wider bg-[#EF4444]/5"
+                  className="px-4 py-2 text-xs font-semibold text-negative uppercase tracking-wider bg-negative/5"
                 >
                   Liabilities
                 </td>

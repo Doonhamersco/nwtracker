@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Card } from "@/components/ui/Card";
+import { Lock } from "lucide-react";
 import { TimeframeSelector, type Timeframe } from "@/components/dashboard/TimeframeSelector";
 import { HeroTotal } from "@/components/dashboard/HeroTotal";
 import { NetWorthChart, type NotableEvent } from "@/components/dashboard/NetWorthChart";
@@ -99,7 +99,6 @@ export function DashboardClient({
     hideStudentLoan
   );
 
-  // Prefer recomputed valuations (supports liquid toggle); fall back to stored snapshot totals
   const heroNetWorth =
     fromValuations ??
     (latestSnapshot?.netWorthGbp !== null && latestSnapshot?.netWorthGbp !== undefined
@@ -152,162 +151,88 @@ export function DashboardClient({
   });
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-        {/* Title row */}
-        <div className="flex flex-col gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-[#F1F5F9]">Net Worth</h1>
-            {latestSnapshot && (
-              <p className="text-sm text-[#94A3B8] mt-0.5">
-                Last snapshot:{" "}
-                {new Date(latestSnapshot.takenAt).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            {hasStudentLoan && (
-              <button
-                type="button"
-                onClick={() => setHideStudentLoan((v) => !v)}
-                aria-pressed={hideStudentLoan}
-                className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors whitespace-nowrap ${
-                  hideStudentLoan
-                    ? "bg-[#22c55e]/15 border-[#22c55e]/80 text-[#22c55e]"
-                    : "bg-transparent border-[#333333] text-[#94A3B8] hover:border-[#555555] hover:text-[#F1F5F9]"
-                }`}
-              >
-                {hideStudentLoan ? "Liquid (loan hidden)" : "Hide student loan"}
-              </button>
-            )}
-            <TimeframeSelector value={timeframe} onChange={setTimeframe} />
-            <Link
-              href="/checkin"
-              className="w-full sm:w-auto text-center bg-[#22c55e] text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-[#16a34a] transition-colors whitespace-nowrap"
-            >
-              Monthly Check-in
-            </Link>
-          </div>
-        </div>
-
-        {/* Hero total */}
-        <Card>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <section className="rounded-2xl border border-border bg-bg-card px-5 py-6 sm:px-8 sm:py-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <HeroTotal
             netWorthGbp={heroNetWorth}
             previousGbp={heroPrevious}
             loading={false}
-            label={hideStudentLoan ? "Liquid Net Worth" : "Net Worth"}
+            label={hideStudentLoan ? "Liquid net worth" : "Net worth"}
           />
-        </Card>
-
-        {/* Net worth chart */}
-        <Card className="p-5">
-          <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wide mb-4">
-            History
-          </h2>
+          <div className="flex flex-col items-start gap-3 lg:items-end">
+            <div className="flex flex-wrap items-center gap-2">
+              {hasStudentLoan && (
+                <button
+                  type="button"
+                  onClick={() => setHideStudentLoan((v) => !v)}
+                  aria-pressed={hideStudentLoan}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                    hideStudentLoan
+                      ? "bg-accent/15 text-accent"
+                      : "text-muted hover:text-text hover:bg-bg-hover"
+                  }`}
+                >
+                  {hideStudentLoan ? "Liquid" : "Hide loan"}
+                </button>
+              )}
+              <TimeframeSelector value={timeframe} onChange={setTimeframe} />
+            </div>
+            <Link
+              href="/checkin"
+              className="text-sm text-accent hover:text-accent-hover transition-colors"
+            >
+              Monthly check-in →
+            </Link>
+          </div>
+        </div>
+        <div className="mt-8">
           <NetWorthChart
             snapshots={chartSnapshots}
             timeframe={timeframe}
             loading={false}
             events={events}
             weightReadings={weightReadings}
+            variant="hero"
           />
-        </Card>
-
-        {/* Middle row: category breakdown + notable events + weight */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card>
-            <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wide mb-4">
-              Asset Breakdown
-            </h2>
-            <CategoryBreakdownBar accounts={accountSummaries} />
-          </Card>
-
-          {/* Notable events */}
-          <Card>
-            <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wide mb-4">
-              Notable Events
-            </h2>
-            <NotableEventsManager events={events} onEventsChange={setEvents} />
-          </Card>
-
-          {/* Weight log */}
-          <Card>
-            <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wide mb-4">
-              Weight Log
-            </h2>
-            <WeightManager readings={weightReadings} onReadingsChange={setWeightReadings} />
-          </Card>
         </div>
+      </section>
 
-        {/* Summary stats */}
-        <Card>
-          <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wide mb-4">
-            Summary
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              {
-                label: "Total Assets",
-                value: accountSummaries
-                  .filter((a) => a.accountType === "ASSET")
-                  .reduce((sum, a) => sum + a.valueGbp, 0),
-                positive: true,
-              },
-              {
-                label: "Total Liabilities",
-                value: accountSummaries
-                  .filter((a) => a.accountType === "LIABILITY")
-                  .reduce((sum, a) => sum + a.valueGbp, 0),
-                positive: false,
-              },
-              {
-                label: "Snapshots",
-                value: initialSnapshots.length,
-                isCount: true,
-              },
-              {
-                label: "Accounts",
-                value: visibleAccounts.length,
-                isCount: true,
-              },
-            ].map(({ label, value, positive, isCount }) => (
-              <div key={label} className="bg-[#0a0a0a] rounded-xl p-3">
-                <p className="text-xs text-[#94A3B8] mb-1">{label}</p>
-                <p
-                  className={`text-lg font-bold font-mono ${
-                    isCount
-                      ? "text-[#F1F5F9]"
-                      : positive
-                        ? "text-[#22C55E]"
-                        : "text-[#EF4444]"
-                  }`}
-                >
-                  {isCount
-                    ? value
-                    : `£${(value as number).toLocaleString("en-GB", { maximumFractionDigits: 0 })}`}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Card>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <section className="flex flex-col rounded-2xl border border-border bg-bg-card p-5 sm:p-6">
+          <h2 className="mb-5 font-display text-xl font-medium text-text">Asset mix</h2>
+          <CategoryBreakdownBar accounts={accountSummaries} />
+        </section>
 
-        {/* Assets table */}
-        <Card className="p-0 overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#222222]">
-            <h2 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wide">
-              Accounts
-            </h2>
-          </div>
-          <AssetsTable
-            valuations={visibleLatestValuations}
-            accounts={visibleAccounts}
-            previousValuations={visiblePreviousValuations}
-          />
-        </Card>
+        <section className="flex flex-col rounded-2xl border border-border bg-bg-card p-5 sm:p-6">
+          <h2 className="mb-5 font-display text-xl font-medium text-text">Life events</h2>
+          <NotableEventsManager events={events} onEventsChange={setEvents} />
+        </section>
+
+        <section className="flex flex-col rounded-2xl border border-border bg-bg-card p-5 sm:p-6">
+          <h2 className="mb-5 font-display text-xl font-medium text-text">Weight</h2>
+          <WeightManager readings={weightReadings} onReadingsChange={setWeightReadings} />
+        </section>
+      </div>
+
+      <section className="overflow-hidden rounded-2xl border border-border bg-bg-card">
+        <div className="flex items-center justify-between px-5 py-4 sm:px-6">
+          <h2 className="font-display text-xl font-medium text-text">Accounts</h2>
+          <Link href="/assets" className="text-sm text-accent hover:text-accent-hover">
+            View all →
+          </Link>
+        </div>
+        <AssetsTable
+          valuations={visibleLatestValuations}
+          accounts={visibleAccounts}
+          previousValuations={visiblePreviousValuations}
+        />
+      </section>
+
+      <p className="flex items-center justify-center gap-1.5 pt-2 text-xs text-placeholder">
+        <Lock size={11} />
+        All data stays on your machine
+      </p>
     </div>
   );
 }

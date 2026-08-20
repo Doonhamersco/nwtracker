@@ -72,14 +72,14 @@ function cutoffDate(tf: Timeframe): Date | null {
 }
 
 const TOOLTIP_STYLE = {
-  backgroundColor: "#111111",
-  border: "1px solid #222222",
+  backgroundColor: "#141210",
+  border: "1px solid #2a261f",
   borderRadius: 8,
-  color: "#F1F5F9",
+  color: "#f7f1e6",
   fontSize: 12,
 }
 
-const AXIS_STYLE = { fill: "#94A3B8", fontSize: 11 }
+const AXIS_STYLE = { fill: "#9a8d7a", fontSize: 11 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -208,14 +208,14 @@ export default function ReportsPage() {
 
   // Category breakdown chart
   const CATEGORY_COLORS: Record<string, string> = {
-    CASH: "#22C55E",
-    ISA: "#06b6d4",
-    CRYPTO: "#F59E0B",
-    VEHICLE: "#94A3B8",
-    PENSION: "#0EA5E9",
-    STOCKS: "#EC4899",
-    PROPERTY: "#8B5CF6",
-    OTHER_ASSET: "#64748B",
+    CASH: "#c5a059",
+    ISA: "#7a8faf",
+    CRYPTO: "#c4a35a",
+    VEHICLE: "#8fa3b8",
+    PENSION: "#b8954a",
+    STOCKS: "#d4c08a",
+    PROPERTY: "#9c8f80",
+    OTHER_ASSET: "#a89b8c",
   }
 
   const categoryChartData = useMemo(() => {
@@ -235,11 +235,11 @@ export default function ReportsPage() {
     return (
       <div className="flex flex-col gap-6">
         <div>
-          <div className="h-8 w-32 animate-pulse rounded bg-[#111111]" />
-          <div className="mt-2 h-4 w-48 animate-pulse rounded bg-[#111111]" />
+          <div className="h-8 w-32 animate-pulse rounded bg-bg-card" />
+          <div className="mt-2 h-4 w-48 animate-pulse rounded bg-bg-card" />
         </div>
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-72 animate-pulse rounded-2xl bg-[#111111]" />
+          <div key={i} className="h-72 animate-pulse rounded-2xl bg-bg-card" />
         ))}
       </div>
     )
@@ -247,7 +247,7 @@ export default function ReportsPage() {
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-[#EF4444]/40 bg-[#EF4444]/10 p-6 text-sm text-[#EF4444]">
+      <div className="rounded-2xl border border-negative/40 bg-negative/10 p-6 text-sm text-negative">
         Failed to load reports: {error}
       </div>
     )
@@ -257,8 +257,8 @@ export default function ReportsPage() {
     <div className="flex flex-col gap-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-[#F1F5F9]">Reports</h1>
-        <p className="mt-1 text-sm text-[#94A3B8]">
+        <h1 className="font-display text-3xl font-medium tracking-tight text-text">Reports</h1>
+        <p className="mt-1 text-sm text-muted">
           Historical trends and financial analysis
         </p>
       </div>
@@ -266,7 +266,7 @@ export default function ReportsPage() {
       {/* Section 1: Net Worth History */}
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-[#F1F5F9]">
+          <h2 className="text-lg font-semibold text-text">
             {hideStudentLoan ? "Liquid Net Worth History" : "Net Worth History"}
           </h2>
 
@@ -278,8 +278,8 @@ export default function ReportsPage() {
                 aria-pressed={hideStudentLoan}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${
                   hideStudentLoan
-                    ? "bg-[#22c55e]/15 border-[#22c55e]/80 text-[#22c55e]"
-                    : "bg-transparent border-[#333333] text-[#94A3B8] hover:border-[#555555] hover:text-[#F1F5F9]"
+                    ? "bg-accent/15 border-accent/80 text-accent"
+                    : "bg-transparent border-border-strong text-muted hover:border-muted hover:text-text"
                 }`}
               >
                 {hideStudentLoan ? "Liquid (loan hidden)" : "Hide student loan"}
@@ -287,15 +287,15 @@ export default function ReportsPage() {
             )}
 
             {/* Timeframe selector */}
-            <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-[#222222] bg-[#111111] p-1">
+            <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-border bg-bg-card p-1">
               {TIMEFRAMES.map((tf) => (
                 <button
                   key={tf}
                   onClick={() => setTimeframe(tf)}
                   className={`shrink-0 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
                     timeframe === tf
-                      ? "bg-[#22c55e] text-white"
-                      : "text-[#94A3B8] hover:text-[#F1F5F9]"
+                      ? "bg-accent text-bg-base"
+                      : "text-muted hover:text-text"
                   }`}
                 >
                   {tf}
@@ -307,7 +307,7 @@ export default function ReportsPage() {
 
         {nwChartData.length === 0 ? (
           <Card className="flex items-center justify-center h-48">
-            <p className="text-[#94A3B8]">No snapshot data available for this timeframe.</p>
+            <p className="text-muted">No snapshot data available for this timeframe.</p>
           </Card>
         ) : (
           <Card className="min-w-0">
@@ -316,16 +316,16 @@ export default function ReportsPage() {
               <AreaChart data={nwChartData} margin={{ top: 10, right: 10, bottom: 0, left: 10 }}>
                 <defs>
                   <linearGradient id="nwGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#c5a059" stopOpacity={0.22} />
+                    <stop offset="95%" stopColor="#c5a059" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#3a342c" />
                 <XAxis
                   dataKey="date"
                   tick={AXIS_STYLE}
                   tickLine={false}
-                  axisLine={{ stroke: "#222222" }}
+                  axisLine={{ stroke: "#3a342c" }}
                   interval="preserveStartEnd"
                 />
                 <YAxis
@@ -345,7 +345,7 @@ export default function ReportsPage() {
                 <Area
                   type="monotone"
                   dataKey="value"
-                  stroke="#22c55e"
+                  stroke="#c5a059"
                   strokeWidth={2}
                   fill="url(#nwGradient)"
                   dot={false}
@@ -359,14 +359,14 @@ export default function ReportsPage() {
 
         {/* Data table */}
         {nwTableData.length > 0 && (
-          <div className="overflow-x-auto rounded-2xl border border-[#222222]">
+          <div className="overflow-x-auto rounded-2xl border border-border">
             <table className="w-full min-w-[520px] text-sm">
               <thead>
-                <tr className="border-b border-[#222222] bg-[#111111]">
+                <tr className="border-b border-border bg-bg-card">
                   {["Date", hideStudentLoan ? "Liquid NW" : "Net Worth", "MoM Change", "YoY Change"].map((h) => (
                     <th
                       key={h}
-                      className={`px-4 py-3 text-xs font-medium uppercase tracking-wide text-[#94A3B8] ${
+                      className={`px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted ${
                         h === "Date" ? "text-left" : "text-right"
                       }`}
                     >
@@ -377,27 +377,27 @@ export default function ReportsPage() {
               </thead>
               <tbody>
                 {nwTableData.map((row) => (
-                  <tr key={row.id} className="border-b border-[#222222] hover:bg-[#1a1a1a] transition-colors">
-                    <td className="px-4 py-3 text-[#94A3B8]">{row.date}</td>
-                    <td className="px-4 py-3 text-right font-mono font-medium text-[#F1F5F9]">
+                  <tr key={row.id} className="border-b border-border hover:bg-bg-hover transition-colors">
+                    <td className="px-4 py-3 text-muted">{row.date}</td>
+                    <td className="px-4 py-3 text-right font-mono font-medium text-text">
                       {formatGbp(row.netWorth)}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">
                       {row.momChange !== null ? (
-                        <span className={row.momChange >= 0 ? "text-[#22C55E]" : "text-[#EF4444]"}>
+                        <span className={row.momChange >= 0 ? "text-positive" : "text-negative"}>
                           {row.momChange >= 0 ? "+" : ""}{formatGbp(row.momChange)}
                         </span>
                       ) : (
-                        <span className="text-[#94A3B8]">—</span>
+                        <span className="text-muted">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right font-mono">
                       {row.yoyChange !== null ? (
-                        <span className={row.yoyChange >= 0 ? "text-[#22C55E]" : "text-[#EF4444]"}>
+                        <span className={row.yoyChange >= 0 ? "text-positive" : "text-negative"}>
                           {row.yoyChange >= 0 ? "+" : ""}{formatGbp(row.yoyChange)}
                         </span>
                       ) : (
-                        <span className="text-[#94A3B8]">—</span>
+                        <span className="text-muted">—</span>
                       )}
                     </td>
                   </tr>
@@ -410,13 +410,13 @@ export default function ReportsPage() {
 
       {/* Section 2: Income & Spending */}
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold text-[#F1F5F9]">Income & Spending</h2>
+        <h2 className="text-lg font-semibold text-text">Income & Spending</h2>
 
         {incomeSpendData.length === 0 ? (
           <Card>
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-              <p className="text-[#94A3B8]">Income & spending charts require life metric readings.</p>
-              <p className="text-sm text-[#94A3B8]">
+              <p className="text-muted">Income & spending charts require life metric readings.</p>
+              <p className="text-sm text-muted">
                 Complete a check-in with Income and Spend metrics to see this chart.
               </p>
             </div>
@@ -425,14 +425,14 @@ export default function ReportsPage() {
           <Card>
             <ResponsiveContainer width="100%" height={260}>
               <ComposedChart data={incomeSpendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
-                <XAxis dataKey="date" tick={AXIS_STYLE} tickLine={false} axisLine={{ stroke: "#222222" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#3a342c" />
+                <XAxis dataKey="date" tick={AXIS_STYLE} tickLine={false} axisLine={{ stroke: "#3a342c" }} />
                 <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} tickFormatter={formatGbp} width={72} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
                 <Legend />
-                <Bar dataKey="income" name="Income" fill="#22C55E" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="spend" name="Spend" fill="#EF4444" radius={[3, 3, 0, 0]} />
-                <Line type="monotone" dataKey="savingsRate" name="Savings Rate %" stroke="#22c55e" strokeWidth={2} dot={false} yAxisId="right" />
+                <Bar dataKey="income" name="Income" fill="#c5a059" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="spend" name="Spend" fill="#e07060" radius={[3, 3, 0, 0]} />
+                <Line type="monotone" dataKey="savingsRate" name="Savings Rate %" stroke="#c5a059" strokeWidth={2} dot={false} yAxisId="right" />
               </ComposedChart>
             </ResponsiveContainer>
           </Card>
@@ -441,13 +441,13 @@ export default function ReportsPage() {
 
       {/* Section 3: Asset Growth by Category */}
       <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold text-[#F1F5F9]">Asset Growth by Category</h2>
+        <h2 className="text-lg font-semibold text-text">Asset Growth by Category</h2>
 
         {categoryChartData.data.length === 0 ? (
           <Card>
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-              <p className="text-[#94A3B8]">Category breakdown requires account valuations.</p>
-              <p className="text-sm text-[#94A3B8]">
+              <p className="text-muted">Category breakdown requires account valuations.</p>
+              <p className="text-sm text-muted">
                 Complete a check-in with account balances to see the category stacked chart.
               </p>
             </div>
@@ -459,13 +459,13 @@ export default function ReportsPage() {
                 <defs>
                   {categoryChartData.categories.map((cat: string) => (
                     <linearGradient key={cat} id={`grad-${cat}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={CATEGORY_COLORS[cat] ?? "#94A3B8"} stopOpacity={0.4} />
-                      <stop offset="95%" stopColor={CATEGORY_COLORS[cat] ?? "#94A3B8"} stopOpacity={0.05} />
+                      <stop offset="5%" stopColor={CATEGORY_COLORS[cat] ?? "#a89b8c"} stopOpacity={0.4} />
+                      <stop offset="95%" stopColor={CATEGORY_COLORS[cat] ?? "#a89b8c"} stopOpacity={0.05} />
                     </linearGradient>
                   ))}
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#222222" />
-                <XAxis dataKey="date" tick={AXIS_STYLE} tickLine={false} axisLine={{ stroke: "#222222" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#3a342c" />
+                <XAxis dataKey="date" tick={AXIS_STYLE} tickLine={false} axisLine={{ stroke: "#3a342c" }} />
                 <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} tickFormatter={formatGbp} width={72} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: unknown) => formatGbp(v as number)} />
                 <Legend />
@@ -475,7 +475,7 @@ export default function ReportsPage() {
                     type="monotone"
                     dataKey={cat}
                     stackId="1"
-                    stroke={CATEGORY_COLORS[cat] ?? "#94A3B8"}
+                    stroke={CATEGORY_COLORS[cat] ?? "#a89b8c"}
                     fill={`url(#grad-${cat})`}
                     strokeWidth={1.5}
                     dot={false}

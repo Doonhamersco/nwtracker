@@ -38,11 +38,11 @@ export function AccountRow({ account, value, onChange }: AccountRowProps) {
   const isGbp = account.currencyCode.toUpperCase() === "GBP";
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] hover:border-[#22c55e]/40 transition-colors">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl bg-bg-base border border-border hover:border-accent/40 transition-colors">
       {/* Left: account info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-[#F1F5F9] truncate">
+          <span className="text-sm font-medium text-text truncate">
             {account.accountName}
           </span>
           <Badge variant={account.accountType === "LIABILITY" ? "negative" : "accent"}>
@@ -58,13 +58,13 @@ export function AccountRow({ account, value, onChange }: AccountRowProps) {
 
         {/* Live rate info */}
         {isLiveRate && !isGbp && (
-          <p className="text-xs text-[#94A3B8] mt-1">
+          <p className="text-xs text-muted mt-1">
             Live: 1 {account.currencyCode.toUpperCase()} ={" "}
             £{account.currentFxRateToGbp.toLocaleString("en-GB", {
               maximumFractionDigits: 2,
               minimumFractionDigits: 2,
             })}
-            <span className="ml-1 text-[#22c55e]">({account.rateSource})</span>
+            <span className="ml-1 text-accent">({account.rateSource})</span>
           </p>
         )}
       </div>
@@ -74,8 +74,8 @@ export function AccountRow({ account, value, onChange }: AccountRowProps) {
         {/* Preview GBP */}
         {!isGbp && (
           <div className="text-right hidden sm:block">
-            <p className="text-xs text-[#94A3B8]">≈</p>
-            <p className="text-sm font-mono font-medium text-[#F1F5F9]">
+            <p className="text-xs text-muted">≈</p>
+            <p className="text-sm font-mono font-medium text-text">
               £{previewGbp.toLocaleString("en-GB", { maximumFractionDigits: 0 })}
             </p>
           </div>
@@ -85,7 +85,7 @@ export function AccountRow({ account, value, onChange }: AccountRowProps) {
         <div className="flex min-w-0 flex-1 flex-col items-stretch sm:flex-none sm:items-end">
           <div className="relative">
             {isGbp && (
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] text-sm">£</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-sm">£</span>
             )}
             <input
               type="number"
@@ -98,12 +98,12 @@ export function AccountRow({ account, value, onChange }: AccountRowProps) {
                   onChange(num, false);
                 }
               }}
-              className={`w-full min-h-11 rounded-lg border border-[#222222] bg-[#111111] text-[#F1F5F9] text-sm font-mono py-2 pr-3 focus:outline-none focus:border-[#22c55e] transition-colors sm:w-36 ${isGbp ? "pl-7" : "pl-3"}`}
+              className={`w-full min-h-11 rounded-lg border border-border bg-bg-card text-text text-sm font-mono py-2 pr-3 focus:outline-none focus:border-accent transition-colors sm:w-36 ${isGbp ? "pl-7" : "pl-3"}`}
             />
           </div>
           {/* Mobile GBP preview */}
           {!isGbp && (
-            <p className="text-xs text-[#94A3B8] mt-1 sm:hidden">
+            <p className="text-xs text-muted mt-1 sm:hidden">
               ≈ £{previewGbp.toLocaleString("en-GB", { maximumFractionDigits: 0 })}
             </p>
           )}
@@ -115,8 +115,8 @@ export function AccountRow({ account, value, onChange }: AccountRowProps) {
           title="Mark as unchanged"
           className={`min-h-11 shrink-0 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
             isCarriedForward
-              ? "bg-[#22c55e]/20 border-[#22c55e] text-[#22c55e]"
-              : "border-[#222222] text-[#94A3B8] hover:border-[#22c55e]/50 hover:text-[#F1F5F9]"
+              ? "bg-accent/20 border-accent text-accent"
+              : "border-border text-muted hover:border-accent/50 hover:text-text"
           }`}
         >
           ✓

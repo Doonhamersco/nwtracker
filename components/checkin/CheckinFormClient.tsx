@@ -120,15 +120,15 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
     return (
       <Card className="max-w-lg mx-auto mt-12 text-center">
         <div className="flex flex-col items-center gap-4 py-4">
-          <CheckCircle className="text-[#22C55E]" size={48} />
-          <h2 className="text-xl font-bold text-[#F1F5F9]">Snapshot saved!</h2>
-          <p className="text-[#94A3B8]">
+          <CheckCircle className="text-positive" size={48} />
+          <h2 className="text-xl font-bold text-text">Snapshot saved!</h2>
+          <p className="text-muted">
             Net worth:{" "}
-            <span className="text-[#22C55E] font-bold font-mono">
+            <span className="text-positive font-bold font-mono">
               £{submitResult.netWorthGbp.toLocaleString("en-GB", { maximumFractionDigits: 0 })}
             </span>
           </p>
-          <p className="text-xs text-[#94A3B8]">Redirecting to dashboard…</p>
+          <p className="text-xs text-muted">Redirecting to dashboard…</p>
         </div>
       </Card>
     );
@@ -139,10 +139,10 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
       {/* Assets section */}
       {assetAccounts.length > 0 && (
         <section>
-          <h2 className="text-base font-semibold text-[#F1F5F9] mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
+          <h2 className="text-base font-semibold text-text mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-positive" />
             Assets
-            <span className="text-xs text-[#94A3B8] font-normal">
+            <span className="text-xs text-muted font-normal">
               ({assetAccounts.length})
             </span>
           </h2>
@@ -167,10 +167,10 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
       {/* Liabilities section */}
       {liabilityAccounts.length > 0 && (
         <section>
-          <h2 className="text-base font-semibold text-[#F1F5F9] mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
+          <h2 className="text-base font-semibold text-text mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-negative" />
             Liabilities
-            <span className="text-xs text-[#94A3B8] font-normal">
+            <span className="text-xs text-muted font-normal">
               ({liabilityAccounts.length})
             </span>
           </h2>
@@ -195,10 +195,10 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
       {/* Life metrics section */}
       {draft.metrics.length > 0 && (
         <section>
-          <h2 className="text-base font-semibold text-[#F1F5F9] mb-3 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
+          <h2 className="text-base font-semibold text-text mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-accent" />
             Life Metrics
-            <span className="text-xs text-[#94A3B8] font-normal">
+            <span className="text-xs text-muted font-normal">
               ({draft.metrics.length})
             </span>
           </h2>
@@ -219,22 +219,22 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
 
       {/* Notes */}
       <section>
-        <h2 className="text-base font-semibold text-[#F1F5F9] mb-3">
+        <h2 className="text-base font-semibold text-text mb-3">
           Notes{" "}
-          <span className="text-xs text-[#94A3B8] font-normal">(optional)</span>
+          <span className="text-xs text-muted font-normal">(optional)</span>
         </h2>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           placeholder="Any notes about this snapshot…"
-          className="w-full rounded-xl border border-[#222222] bg-[#111111] text-[#F1F5F9] text-sm px-4 py-3 placeholder-[#94A3B8]/60 focus:outline-none focus:border-[#22c55e] transition-colors resize-none"
+          className="w-full rounded-xl border border-border bg-bg-card text-text text-sm px-4 py-3 placeholder-muted/60 focus:outline-none focus:border-accent transition-colors resize-none"
         />
       </section>
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 rounded-xl bg-[#EF4444]/10 border border-[#EF4444]/30 px-4 py-3 text-sm text-[#EF4444]">
+        <div className="flex items-center gap-2 rounded-xl bg-negative/10 border border-negative/30 px-4 py-3 text-sm text-negative">
           <AlertCircle size={16} className="flex-shrink-0" />
           {error}
         </div>
@@ -245,7 +245,7 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
         <button
           onClick={() => handleSubmit(true)}
           disabled={submitting}
-          className="flex min-h-11 items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#222222] text-sm text-[#94A3B8] hover:text-[#F1F5F9] hover:border-[#22c55e]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex min-h-11 items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm text-muted hover:text-text hover:border-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting && <Loader2 size={14} className="animate-spin" />}
           Save as Partial
@@ -253,7 +253,7 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
         <button
           onClick={() => handleSubmit(false)}
           disabled={submitting}
-          className="flex min-h-11 items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-[#22c55e] text-white text-sm font-medium hover:bg-[#16a34a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex min-h-11 items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-accent text-bg-base text-sm font-medium hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting && <Loader2 size={14} className="animate-spin" />}
           Commit Snapshot

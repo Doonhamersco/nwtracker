@@ -10,7 +10,7 @@ const GYM_SESSION_GOAL = 12;
 function VolumeChart({ data }: { data: HevyStats["recent_volume"] }) {
   if (data.length === 0) {
     return (
-      <p className="text-xs text-zinc-500 text-center py-4">No workouts in the last 30 days</p>
+      <p className="text-xs text-muted text-center py-4">No workouts in the last 30 days</p>
     );
   }
 
@@ -22,7 +22,7 @@ function VolumeChart({ data }: { data: HevyStats["recent_volume"] }) {
         <div
           key={d.date}
           title={`${d.date}: ${d.total_volume_kg.toLocaleString()} kg`}
-          className="flex-1 rounded-t bg-emerald-500 opacity-80 hover:opacity-100 transition-opacity min-w-0"
+          className="flex-1 rounded-t bg-accent opacity-80 hover:opacity-100 transition-opacity min-w-0"
           style={{ height: `${Math.max(4, (d.total_volume_kg / max) * 100)}%` }}
         />
       ))}
@@ -44,13 +44,13 @@ function StatPill({
   danger?: boolean;
 }) {
   const colorClass = danger
-    ? "text-red-400"
+    ? "text-negative"
     : accent
-    ? "text-emerald-400"
-    : "text-zinc-100";
+    ? "text-accent"
+    : "text-text";
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-zinc-500 uppercase tracking-wide">{label}</span>
+      <span className="text-xs text-muted tracking-wide">{label}</span>
       <span className={`text-xl font-semibold ${colorClass}`}>{value}</span>
     </div>
   );
@@ -84,20 +84,20 @@ export default function HevyWidget() {
   }, []);
 
   return (
-    <div className="rounded-2xl bg-zinc-900 border border-zinc-800 p-5 flex flex-col gap-4">
+    <div className="rounded-2xl bg-bg-card border border-border p-5 flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-lg">🏋️</span>
-          <h2 className="text-sm font-semibold text-zinc-200 tracking-wide uppercase">
+          <h2 className="text-sm font-medium text-muted">
             Hevy Workouts
           </h2>
         </div>
         {status === "loading" && (
-          <span className="text-xs text-zinc-500 animate-pulse">Loading…</span>
+          <span className="text-xs text-muted animate-pulse">Loading…</span>
         )}
         {status === "ok" && stats?.last_workout_at && (
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-muted">
             Last:{" "}
             {new Date(stats.last_workout_at).toLocaleDateString("en-GB", {
               day: "numeric",
@@ -109,7 +109,7 @@ export default function HevyWidget() {
 
       {/* Error state */}
       {status === "error" && (
-        <div className="rounded-lg bg-red-950/40 border border-red-900/60 px-3 py-2 text-xs text-red-400">
+        <div className="rounded-lg bg-negative/10 border border-negative/30 px-3 py-2 text-xs text-negative">
           {errorMsg.includes("HEVY_API_KEY")
             ? "Add your HEVY_API_KEY to .env.local to connect Hevy."
             : errorMsg}
@@ -131,13 +131,13 @@ export default function HevyWidget() {
           </div>
 
           {stats.latest_weight_kg != null && (
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
-              <span className="text-zinc-500">Weight</span>
-              <span className="text-zinc-100 font-medium">
+            <div className="flex items-center gap-2 text-sm text-muted">
+              <span className="text-placeholder">Weight</span>
+              <span className="text-text font-medium">
                 {stats.latest_weight_kg.toFixed(1)} kg
               </span>
               {stats.latest_weight_date && (
-                <span className="text-zinc-600 text-xs">
+                <span className="text-placeholder text-xs">
                   (
                   {new Date(stats.latest_weight_date).toLocaleDateString("en-GB", {
                     day: "numeric",
@@ -151,7 +151,7 @@ export default function HevyWidget() {
 
           {/* 30-day volume chart */}
           <div className="flex flex-col gap-1">
-            <span className="text-xs text-zinc-500 uppercase tracking-wide">
+            <span className="text-xs text-muted">
               30-day volume (kg lifted)
             </span>
             <VolumeChart data={stats.recent_volume} />
@@ -164,10 +164,10 @@ export default function HevyWidget() {
         <div className="flex flex-col gap-3 animate-pulse">
           <div className="grid grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-10 rounded bg-zinc-800" />
+              <div key={i} className="h-10 rounded bg-border" />
             ))}
           </div>
-          <div className="h-16 rounded bg-zinc-800" />
+          <div className="h-16 rounded bg-border" />
         </div>
       )}
     </div>

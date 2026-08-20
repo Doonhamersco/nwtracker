@@ -79,13 +79,13 @@ export function AddAccountForm({ onSuccess, onCancel }: AddAccountFormProps) {
   }
 
   const inputClass =
-    "w-full rounded-lg border border-[#222222] bg-[#0a0a0a] px-3 py-2 text-sm text-[#F1F5F9] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#22c55e] transition-colors"
-  const labelClass = "block text-xs font-medium text-[#94A3B8] mb-1.5 uppercase tracking-wide"
+    "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
+  const labelClass = "block text-xs font-medium text-muted mb-1.5 uppercase tracking-wide"
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && (
-        <div className="rounded-lg border border-[#EF4444]/40 bg-[#EF4444]/10 px-3 py-2 text-sm text-[#EF4444]">
+        <div className="rounded-lg border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative">
           {error}
         </div>
       )}
@@ -159,14 +159,14 @@ export function AddAccountForm({ onSuccess, onCancel }: AddAccountFormProps) {
             placeholder="e.g. bitcoin, ethereum"
             className={inputClass}
           />
-          <p className="mt-1 text-xs text-[#94A3B8]">
+          <p className="mt-1 text-xs text-muted">
             Used to auto-fetch GBP spot price at check-in.
             Find IDs at{" "}
             <a
               href="https://www.coingecko.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#22c55e] hover:underline"
+              className="text-accent hover:underline"
             >
               coingecko.com
             </a>
@@ -203,14 +203,14 @@ export function AddAccountForm({ onSuccess, onCancel }: AddAccountFormProps) {
         <button
           type="button"
           onClick={onCancel}
-          className="text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#111111] rounded-lg px-3 py-2 text-sm transition-colors"
+          className="text-muted hover:text-text hover:bg-bg-card rounded-lg px-3 py-2 text-sm transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-[#22c55e] text-white rounded-lg px-4 py-2 text-sm hover:bg-[#16a34a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="bg-accent text-bg-base rounded-lg px-4 py-2 text-sm hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isSubmitting ? "Adding…" : "Add Account"}
         </button>

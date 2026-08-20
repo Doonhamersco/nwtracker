@@ -7,15 +7,15 @@ interface CardProps {
 }
 
 const variantClasses = {
-  default: "bg-[#111111] border-[#222222]",
-  completed: "bg-[#166534] border-[#22c55e]",
+  default: "bg-bg-card border-border",
+  completed: "bg-accent/15 border-accent/40",
 };
 
 export function Card({ children, className, variant = "default" }: CardProps) {
   return (
     <div
       className={cn(
-        "border rounded-2xl p-4 sm:p-5",
+        "border rounded-2xl p-5 sm:p-6",
         variantClasses[variant],
         className
       )}

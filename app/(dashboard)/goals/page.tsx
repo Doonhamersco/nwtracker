@@ -65,15 +65,15 @@ export default function GoalsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#F1F5F9]">Goals</h1>
-          <p className="mt-1 text-sm text-[#94A3B8]">
+          <h1 className="font-display text-3xl font-medium tracking-tight text-text">Goals</h1>
+          <p className="mt-1 text-sm text-muted">
             Track progress toward your financial targets
           </p>
         </div>
         {!formMode && (
           <button
             onClick={() => setFormMode({ kind: "create" })}
-            className="bg-[#22c55e] text-white rounded-lg px-4 py-2 text-sm hover:bg-[#16a34a] transition-colors"
+            className="bg-accent text-bg-base rounded-lg px-4 py-2 text-sm hover:bg-accent-hover transition-colors"
           >
             + New Goal
           </button>
@@ -81,8 +81,8 @@ export default function GoalsPage() {
       </div>
 
       {formMode && (
-        <div ref={formRef} className="rounded-2xl border border-[#222222] bg-[#111111] p-5">
-          <h2 className="mb-4 text-base font-semibold text-[#F1F5F9]">
+        <div ref={formRef} className="rounded-2xl border border-border bg-bg-card p-5">
+          <h2 className="mb-4 text-base font-semibold text-text">
             {formMode.kind === "create"
               ? "Create New Goal"
               : formMode.kind === "complete"
@@ -116,31 +116,31 @@ export default function GoalsPage() {
       {loading && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-48 animate-pulse rounded-2xl bg-[#111111]" />
+            <div key={i} className="h-48 animate-pulse rounded-2xl bg-bg-card" />
           ))}
         </div>
       )}
 
       {!loading && error && (
-        <div className="rounded-2xl border border-[#EF4444]/40 bg-[#EF4444]/10 p-4 text-sm text-[#EF4444]">
+        <div className="rounded-2xl border border-negative/40 bg-negative/10 p-4 text-sm text-negative">
           {error}
         </div>
       )}
 
       {!loading && !error && goals.length === 0 && !formMode && (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-[#222222] bg-[#111111] py-16 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#22c55e]/20">
-            <Target className="text-[#22c55e]" size={28} />
+        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-bg-card py-16 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/20">
+            <Target className="text-accent" size={28} />
           </div>
           <div>
-            <p className="font-semibold text-[#F1F5F9]">Set your first goal</p>
-            <p className="mt-1 text-sm text-[#94A3B8]">
+            <p className="font-semibold text-text">Set your first goal</p>
+            <p className="mt-1 text-sm text-muted">
               Create a financial goal to start tracking your progress.
             </p>
           </div>
           <button
             onClick={() => setFormMode({ kind: "create" })}
-            className="bg-[#22c55e] text-white rounded-lg px-4 py-2 text-sm hover:bg-[#16a34a] transition-colors"
+            className="bg-accent text-bg-base rounded-lg px-4 py-2 text-sm hover:bg-accent-hover transition-colors"
           >
             Create Goal
           </button>

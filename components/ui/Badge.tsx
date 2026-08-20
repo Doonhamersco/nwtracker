@@ -8,10 +8,10 @@ interface BadgeProps {
 }
 
 const variantClasses: Record<Variant, string> = {
-  positive: "bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E]/30",
-  negative: "bg-[#EF4444]/15 text-[#EF4444] border-[#EF4444]/30",
-  neutral: "bg-[#94A3B8]/15 text-[#94A3B8] border-[#94A3B8]/30",
-  accent: "bg-[#22c55e]/15 text-[#22c55e] border-[#22c55e]/30",
+  positive: "bg-positive/15 text-positive border-positive/30",
+  negative: "bg-negative/15 text-negative border-negative/30",
+  neutral: "bg-muted/15 text-muted border-muted/30",
+  accent: "bg-accent/15 text-accent border-accent/30",
 };
 
 export function Badge({ children, variant = "neutral" }: BadgeProps) {

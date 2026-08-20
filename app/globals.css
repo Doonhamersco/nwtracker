@@ -3,17 +3,22 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-playfair);
 
-  /* Brand palette */
-  --color-bg-base:    #0a0a0a;
-  --color-bg-card:    #111111;
-  --color-bg-hover:   #1a1a1a;
-  --color-border:     #222222;
-  --color-text:       #F1F5F9;
-  --color-muted:      #94A3B8;
-  --color-positive:   #22C55E;
-  --color-negative:   #EF4444;
-  --color-accent:     #22c55e;
+  /* Warm Ledger — closer to the mockup */
+  --color-bg-base:        #0c0b0a;
+  --color-bg-card:        #141210;
+  --color-bg-hover:       #1c1914;
+  --color-border:         #2a261f;
+  --color-border-strong:  #3d372e;
+  --color-text:           #f7f1e6;
+  --color-muted:          #9a8d7a;
+  --color-placeholder:    #6b6156;
+  --color-positive:       #c5a059;
+  --color-negative:       #d47a6a;
+  --color-accent:         #c5a059;
+  --color-accent-hover:   #b48d45;
+  --color-weight:         #8a9bb0;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -23,8 +28,8 @@ html {
 }
 
 body {
-  background-color: #0a0a0a;
-  color: #F1F5F9;
+  background-color: var(--color-bg-base);
+  color: var(--color-text);
   font-family: var(--font-geist-sans, system-ui, sans-serif);
   height: 100%;
   -webkit-font-smoothing: antialiased;
@@ -32,7 +37,6 @@ body {
   text-size-adjust: 100%;
 }
 
-/* Keep form controls at 16px on phones so iOS does not zoom on focus */
 @media (max-width: 767px) {
   input:not([type="checkbox"]):not([type="radio"]),
   select,

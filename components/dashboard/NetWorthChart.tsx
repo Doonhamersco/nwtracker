@@ -43,14 +43,22 @@ interface NetWorthChartProps {
   loading: boolean;
   events?: NotableEvent[];
   weightReadings?: WeightReading[];
+  variant?: "default" | "hero";
 }
 
 // ─── Series config ────────────────────────────────────────────────────────────
 // To add a new series in the future, add an entry here.
 
+const GOLD = "#c5a059";
+const DUSTY_BLUE = "#8a9bb0";
+const ESPRESSO = "#141210";
+const IVORY = "#f7f1e6";
+const TAUPE = "#9a8d7a";
+const WARM_BORDER = "#2a261f";
+
 const SERIES = [
-  { key: "netWorth", label: "Net Worth", color: "#22c55e" },
-  { key: "weight",   label: "Weight (kg)", color: "#6366f1" },
+  { key: "netWorth", label: "Net Worth", color: GOLD },
+  { key: "weight",   label: "Weight (kg)", color: DUSTY_BLUE },
 ] as const;
 
 type SeriesKey = (typeof SERIES)[number]["key"];
@@ -101,11 +109,11 @@ function CustomTooltip({ active, payload, label, visible }: CustomTooltipProps) 
   const displayLabel = point.date ?? label;
 
   return (
-    <div className="bg-[#111111] border border-[#222222] rounded-xl px-4 py-3 shadow-xl">
-      <p className="text-xs text-[#94A3B8] mb-1">{displayLabel}</p>
+    <div className="bg-bg-card border border-border rounded-xl px-4 py-3">
+      <p className="text-xs text-muted mb-1">{displayLabel}</p>
       {visible.has("netWorth") && current !== null && (
         <>
-          <p className="text-base font-bold text-[#F1F5F9]">
+          <p className="text-base font-bold text-text">
             {new Intl.NumberFormat("en-GB", {
               style: "currency",
               currency: "GBP",
@@ -113,7 +121,7 @@ function CustomTooltip({ active, payload, label, visible }: CustomTooltipProps) 
             }).format(current)}
           </p>
           {change !== null && (
-            <p className={`text-xs mt-0.5 ${change >= 0 ? "text-[#22C55E]" : "text-[#EF4444]"}`}>
+            <p className={`text-xs mt-0.5 ${change >= 0 ? "text-positive" : "text-negative"}`}>
               {change >= 0 ? "▲" : "▼"} £
               {Math.abs(change).toLocaleString("en-GB", { maximumFractionDigits: 0 })}
             </p>
@@ -121,7 +129,7 @@ function CustomTooltip({ active, payload, label, visible }: CustomTooltipProps) 
         </>
       )}
       {visible.has("weight") && point.weight !== null && (
-        <p className="text-xs text-[#6366f1] mt-1 font-mono">⚖ {point.weight.toFixed(1)} kg</p>
+        <p className="text-xs text-weight mt-1 font-mono">{point.weight.toFixed(1)} kg</p>
       )}
     </div>
   );
@@ -151,11 +159,11 @@ function EventLabel({ viewBox, emoji, label, eventId, activeEventId, onEnter, on
 
   return (
     <g>
-      <line x1={x} y1={0} x2={x} y2={markerY - 14} stroke="#4B5563" strokeWidth={1} strokeDasharray="3 3" opacity={0.6} />
+      <line x1={x} y1={0} x2={x} y2={markerY - 14} stroke={TAUPE} strokeWidth={1} strokeDasharray="3 3" opacity={0.6} />
       <circle
         cx={x} cy={markerY} r={12}
-        fill="#1C1C1E"
-        stroke={isActive ? "#F1F5F9" : "#374151"}
+        fill={ESPRESSO}
+        stroke={isActive ? GOLD : WARM_BORDER}
         strokeWidth={1.5}
         style={{ cursor: "pointer" }}
         onMouseEnter={() => onEnter(eventId)}
@@ -166,8 +174,8 @@ function EventLabel({ viewBox, emoji, label, eventId, activeEventId, onEnter, on
       </text>
       {isActive && (
         <g>
-          <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} rx={6} fill="#111111" stroke="#333333" strokeWidth={1} filter="drop-shadow(0 2px 8px rgba(0,0,0,0.6))" />
-          <text x={x} y={tooltipY + tooltipHeight / 2 + 5} textAnchor="middle" fontSize={11} fill="#F1F5F9" fontFamily="system-ui, sans-serif">
+          <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} rx={6} fill={ESPRESSO} stroke={WARM_BORDER} strokeWidth={1} />
+          <text x={x} y={tooltipY + tooltipHeight / 2 + 5} textAnchor="middle" fontSize={11} fill={IVORY} fontFamily="system-ui, sans-serif">
             {emoji} {label.length > 22 ? label.slice(0, 22) + "…" : label}
           </text>
         </g>
@@ -184,6 +192,7 @@ export function NetWorthChart({
   loading,
   events = [],
   weightReadings = [],
+  variant = "default",
 }: NetWorthChartProps) {
   const [visible, setVisible] = useState<Set<SeriesKey>>(new Set(["netWorth"]));
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
@@ -230,7 +239,7 @@ export function NetWorthChart({
   if (dateMap.size === 0) {
     return (
       <div className="w-full h-64 flex items-center justify-center">
-        <p className="text-[#94A3B8] text-sm">No snapshot data yet</p>
+        <p className="text-muted text-sm">No snapshot data yet</p>
       </div>
     );
   }
@@ -267,11 +276,12 @@ export function NetWorthChart({
   const showNetWorth = visible.has("netWorth");
   const showWeight = visible.has("weight");
   const hasWeightData = showWeight && chartData.some((d) => d.weight !== null);
-  const rightMargin = hasWeightData ? 55 : 10;
+  const netWorthOnRight = showNetWorth && !hasWeightData;
+  const rightMargin = hasWeightData || netWorthOnRight ? 52 : 8;
+  const isHero = variant === "hero";
 
   return (
     <div>
-      {/* Series toggle pills */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         {SERIES.map((s) => {
           const on = visible.has(s.key);
@@ -282,7 +292,7 @@ export function NetWorthChart({
               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 on
                   ? "border"
-                  : "bg-transparent border border-[#333333] text-[#4B5563] hover:border-[#555555] hover:text-[#94A3B8]"
+                  : "bg-transparent border border-border-strong text-placeholder hover:border-muted hover:text-muted"
               }`}
               style={
                 on
@@ -304,16 +314,16 @@ export function NetWorthChart({
         })}
       </div>
 
-      <div className="h-52 w-full min-w-0 sm:h-64">
+      <div className={`w-full min-w-0 ${isHero ? "h-72 sm:h-80 lg:h-[22rem]" : "h-52 sm:h-64"}`}>
         <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={chartData} margin={{ top: 10, right: rightMargin, left: 0, bottom: 0 }}>
+        <ComposedChart data={chartData} margin={{ top: 8, right: rightMargin, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+              <stop offset="5%" stopColor={GOLD} stopOpacity={0.22} />
+              <stop offset="95%" stopColor={GOLD} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#222222" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={WARM_BORDER} vertical={false} />
           <XAxis
             dataKey="ts"
             type="number"
@@ -326,15 +336,16 @@ export function NetWorthChart({
                 year: manyPoints ? "2-digit" : "numeric",
               })
             }
-            tick={{ fill: "#94A3B8", fontSize: 11 }}
+            tick={{ fill: TAUPE, fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             interval="preserveStartEnd"
           />
           <YAxis
             yAxisId="left"
+            orientation={netWorthOnRight ? "right" : "left"}
             tickFormatter={formatGbp}
-            tick={{ fill: showNetWorth ? "#94A3B8" : "transparent", fontSize: 11 }}
+            tick={{ fill: showNetWorth ? TAUPE : "transparent", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={showNetWorth ? 48 : 1}
@@ -344,7 +355,7 @@ export function NetWorthChart({
               yAxisId="right"
               orientation="right"
               tickFormatter={(v: number) => `${v}kg`}
-              tick={{ fill: "#6366f1", fontSize: 11 }}
+              tick={{ fill: DUSTY_BLUE, fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               width={50}
@@ -356,11 +367,11 @@ export function NetWorthChart({
             yAxisId="left"
             type="monotone"
             dataKey="value"
-            stroke={showNetWorth ? "#22c55e" : "transparent"}
-            strokeWidth={2}
+            stroke={showNetWorth ? GOLD : "transparent"}
+            strokeWidth={1.75}
             fill={showNetWorth ? "url(#netWorthGradient)" : "transparent"}
             dot={false}
-            activeDot={showNetWorth ? { r: 4, fill: "#22c55e", stroke: "#111111", strokeWidth: 2 } : false}
+            activeDot={showNetWorth ? { r: 4, fill: GOLD, stroke: ESPRESSO, strokeWidth: 2 } : false}
             connectNulls
           />
           {hasWeightData && (
@@ -368,10 +379,10 @@ export function NetWorthChart({
               yAxisId="right"
               type="monotone"
               dataKey="weight"
-              stroke="#6366f1"
+              stroke={DUSTY_BLUE}
               strokeWidth={2}
-              dot={{ r: 3, fill: "#6366f1", stroke: "#111111", strokeWidth: 1.5 }}
-              activeDot={{ r: 5, fill: "#6366f1", stroke: "#111111", strokeWidth: 2 }}
+              dot={{ r: 3, fill: DUSTY_BLUE, stroke: ESPRESSO, strokeWidth: 1.5 }}
+              activeDot={{ r: 5, fill: DUSTY_BLUE, stroke: ESPRESSO, strokeWidth: 2 }}
               connectNulls
             />
           )}

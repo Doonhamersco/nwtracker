@@ -48,10 +48,10 @@ interface GoalCardProps {
 }
 
 const STATUS_CONFIG = {
-  achieved: { label: "Achieved", color: "#22C55E", barColor: "bg-[#22C55E]", badgeBg: "bg-[#22C55E]/20 text-[#22C55E]" },
-  on_track: { label: "On Track", color: "#22c55e", barColor: "bg-[#22c55e]", badgeBg: "bg-[#22c55e]/20 text-[#22c55e]" },
-  at_risk: { label: "At Risk", color: "#F59E0B", barColor: "bg-amber-500", badgeBg: "bg-amber-500/20 text-amber-400" },
-  no_data: { label: "No Data", color: "#94A3B8", barColor: "bg-[#94A3B8]", badgeBg: "bg-[#94A3B8]/20 text-[#94A3B8]" },
+  achieved: { label: "Achieved", color: "#c5a059", barColor: "bg-positive", badgeBg: "bg-positive/20 text-positive" },
+  on_track: { label: "On Track", color: "#c5a059", barColor: "bg-accent", badgeBg: "bg-accent/20 text-accent" },
+  at_risk: { label: "At Risk", color: "#c4a35a", barColor: "bg-accent/60", badgeBg: "bg-accent/20 text-accent" },
+  no_data: { label: "No Data", color: "#a89b8c", barColor: "bg-muted", badgeBg: "bg-muted/20 text-muted" },
 }
 
 function formatValue(value: number): string {
@@ -79,8 +79,8 @@ export function GoalCard({ item, onEdit, onComplete, onDelete }: GoalCardProps) 
   const clampedPercent = isCompleted
     ? 100
     : Math.min(100, Math.max(0, progress.progressPercent ?? 0))
-  const muted = isCompleted ? "text-[#bbf7d0]" : "text-[#94A3B8]"
-  const heading = isCompleted ? "text-white" : "text-[#F1F5F9]"
+  const muted = isCompleted ? "text-accent" : "text-muted"
+  const heading = isCompleted ? "text-white" : "text-text"
   const imageFiles = files.filter((f) => f.mimeType.startsWith("image/"))
 
   return (
@@ -102,7 +102,7 @@ export function GoalCard({ item, onEdit, onComplete, onDelete }: GoalCardProps) 
       </div>
 
       <div className="flex items-center gap-3">
-        <div className={`flex-1 rounded-full h-2 overflow-hidden ${isCompleted ? "bg-black/20" : "bg-[#222222]"}`}>
+        <div className={`flex-1 rounded-full h-2 overflow-hidden ${isCompleted ? "bg-black/20" : "bg-border"}`}>
           <div
             className={`h-full rounded-full transition-all ${isCompleted ? "bg-white" : cfg.barColor}`}
             style={{ width: `${clampedPercent}%` }}
@@ -164,7 +164,7 @@ export function GoalCard({ item, onEdit, onComplete, onDelete }: GoalCardProps) 
 
       <div
         className={`flex items-center justify-between gap-2 border-t pt-3 ${
-          isCompleted ? "border-white/15" : "border-[#222222]"
+          isCompleted ? "border-white/15" : "border-border"
         }`}
       >
         <button
@@ -172,8 +172,8 @@ export function GoalCard({ item, onEdit, onComplete, onDelete }: GoalCardProps) 
           onClick={onDelete}
           className={`text-sm transition-colors px-2 py-1.5 rounded-lg ${
             isCompleted
-              ? "text-white/70 hover:text-white hover:bg-[#EF4444]/40"
-              : "text-[#94A3B8] hover:text-[#EF4444] hover:bg-[#EF4444]/10"
+              ? "text-white/70 hover:text-white hover:bg-negative/40"
+              : "text-muted hover:text-negative hover:bg-negative/10"
           }`}
         >
           Delete
@@ -185,7 +185,7 @@ export function GoalCard({ item, onEdit, onComplete, onDelete }: GoalCardProps) 
             className={`text-sm font-medium px-3 py-1.5 rounded-lg border transition-colors ${
               isCompleted
                 ? "border-white/30 text-white hover:bg-white/10"
-                : "border-[#333333] text-[#F1F5F9] hover:bg-[#1a1a1a]"
+                : "border-border-strong text-text hover:bg-bg-hover"
             }`}
           >
             Edit
@@ -194,7 +194,7 @@ export function GoalCard({ item, onEdit, onComplete, onDelete }: GoalCardProps) 
             <button
               type="button"
               onClick={onComplete}
-              className="text-sm font-medium bg-[#22c55e] text-white px-3 py-1.5 rounded-lg hover:bg-[#16a34a] transition-colors"
+              className="text-sm font-medium bg-accent text-bg-base px-3 py-1.5 rounded-lg hover:bg-accent-hover transition-colors"
             >
               Complete
             </button>

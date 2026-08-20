@@ -219,14 +219,14 @@ export function GoalForm({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-[#222222] bg-[#0a0a0a] px-3 py-2 text-sm text-[#F1F5F9] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#22c55e] transition-colors"
+    "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
 
-  const labelClass = "block text-xs font-medium text-[#94A3B8] mb-1.5 uppercase tracking-wide"
+  const labelClass = "block text-xs font-medium text-muted mb-1.5 uppercase tracking-wide"
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && (
-        <div className="rounded-lg border border-[#EF4444]/40 bg-[#EF4444]/10 px-3 py-2 text-sm text-[#EF4444]">
+        <div className="rounded-lg border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative">
           {error}
         </div>
       )}
@@ -321,7 +321,7 @@ export function GoalForm({
           {existingFiles.map((file) => (
             <div
               key={file.id}
-              className="relative h-20 w-20 overflow-hidden rounded-lg border border-[#222222]"
+              className="relative h-20 w-20 overflow-hidden rounded-lg border border-border"
             >
               {file.mimeType.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -331,7 +331,7 @@ export function GoalForm({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-[#0a0a0a] p-1 text-center text-[10px] text-[#94A3B8]">
+                <div className="flex h-full w-full items-center justify-center bg-bg-base p-1 text-center text-[10px] text-muted">
                   {file.displayName}
                 </div>
               )}
@@ -339,7 +339,7 @@ export function GoalForm({
                 type="button"
                 onClick={() => removeExisting(file.id)}
                 aria-label={`Remove ${file.displayName}`}
-                className="absolute right-1 top-1 rounded-full bg-black/70 p-0.5 text-white hover:bg-[#EF4444]"
+                className="absolute right-1 top-1 rounded-full bg-black/70 p-0.5 text-white hover:bg-negative"
               >
                 <X size={12} />
               </button>
@@ -348,7 +348,7 @@ export function GoalForm({
           {pendingImages.map((img) => (
             <div
               key={img.url}
-              className="relative h-20 w-20 overflow-hidden rounded-lg border border-[#222222]"
+              className="relative h-20 w-20 overflow-hidden rounded-lg border border-border"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img.url} alt={img.file.name} className="h-full w-full object-cover" />
@@ -356,7 +356,7 @@ export function GoalForm({
                 type="button"
                 onClick={() => removePending(img.url)}
                 aria-label={`Remove ${img.file.name}`}
-                className="absolute right-1 top-1 rounded-full bg-black/70 p-0.5 text-white hover:bg-[#EF4444]"
+                className="absolute right-1 top-1 rounded-full bg-black/70 p-0.5 text-white hover:bg-negative"
               >
                 <X size={12} />
               </button>
@@ -365,7 +365,7 @@ export function GoalForm({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-[#333333] text-[#94A3B8] hover:border-[#22c55e] hover:text-[#22c55e] transition-colors"
+            className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border-strong text-muted hover:border-accent hover:text-accent transition-colors"
           >
             <ImagePlus size={18} />
             <span className="text-[10px]">Add</span>
@@ -381,7 +381,7 @@ export function GoalForm({
         />
       </div>
 
-      <label className="flex items-start gap-3 rounded-lg border border-[#222222] bg-[#0a0a0a] px-3 py-3 cursor-pointer">
+      <label className="flex items-start gap-3 rounded-lg border border-border bg-bg-base px-3 py-3 cursor-pointer">
         <input
           type="checkbox"
           checked={isCompleted}
@@ -391,13 +391,13 @@ export function GoalForm({
               setCompletedAt(todayIsoDate())
             }
           }}
-          className="mt-0.5 h-4 w-4 accent-[#22c55e]"
+          className="mt-0.5 h-4 w-4 accent-accent"
         />
         <span className="flex-1">
-          <span className="block text-sm font-medium text-[#F1F5F9]">
+          <span className="block text-sm font-medium text-text">
             Mark this goal as complete
           </span>
-          <span className="mt-0.5 block text-xs text-[#94A3B8]">
+          <span className="mt-0.5 block text-xs text-muted">
             Turns the goal card green and records the date you finished it.
           </span>
         </span>
@@ -420,14 +420,14 @@ export function GoalForm({
         <button
           type="button"
           onClick={onCancel}
-          className="text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#111111] rounded-lg px-3 py-2 text-sm transition-colors"
+          className="text-muted hover:text-text hover:bg-bg-card rounded-lg px-3 py-2 text-sm transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-[#22c55e] text-white rounded-lg px-4 py-2 text-sm hover:bg-[#16a34a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="bg-accent text-bg-base rounded-lg px-4 py-2 text-sm hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isSubmitting
             ? "Saving…"

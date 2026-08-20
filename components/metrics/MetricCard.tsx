@@ -51,11 +51,11 @@ export function MetricCard({
       <div className="flex flex-col gap-3">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium uppercase tracking-wide text-[#94A3B8]">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted">
             {name}
           </span>
           {isHevyMetric && (
-            <span className="rounded-full bg-[#22c55e]/20 px-2 py-0.5 text-[10px] font-semibold text-[#22c55e]">
+            <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-semibold text-accent">
               Hevy
             </span>
           )}
@@ -64,16 +64,16 @@ export function MetricCard({
         {/* Value */}
         <div className="flex flex-col gap-1">
           {currentValue !== null ? (
-            <span className="text-2xl font-bold text-[#F1F5F9]">
+            <span className="text-2xl font-bold text-text">
               {formatValue(currentValue, unit)}
             </span>
           ) : (
-            <span className="text-2xl font-bold text-[#94A3B8]">—</span>
+            <span className="text-2xl font-bold text-muted">—</span>
           )}
 
           {/* Change indicator */}
           {change !== null ? (
-            <div className={`flex items-center gap-1 text-xs font-medium ${isPositive ? "text-[#22C55E]" : "text-[#EF4444]"}`}>
+            <div className={`flex items-center gap-1 text-xs font-medium ${isPositive ? "text-positive" : "text-negative"}`}>
               <span>{isPositive ? "▲" : "▼"}</span>
               <span>
                 {formatValue(Math.abs(change), unit)}
@@ -85,7 +85,7 @@ export function MetricCard({
               </span>
             </div>
           ) : currentValue !== null ? (
-            <span className="text-xs text-[#94A3B8]">No previous data</span>
+            <span className="text-xs text-muted">No previous data</span>
           ) : null}
         </div>
 

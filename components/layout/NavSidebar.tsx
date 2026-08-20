@@ -13,8 +13,8 @@ import {
 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import SignOutButton from "./SignOutButton"
+import { BrandMark } from "./BrandMark"
 
-// Date of birth — born January 1, 2005 (was 16 years old in January 2021)
 const DATE_OF_BIRTH = new Date("2005-01-01")
 
 function getCurrentAge(): number {
@@ -28,40 +28,42 @@ function getCurrentAge(): number {
 }
 
 const navLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/assets", label: "Assets", icon: Wallet },
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/assets", label: "Accounts", icon: Wallet },
   { href: "/metrics", label: "Life Metrics", icon: Activity },
   { href: "/goals", label: "Goals", icon: Target },
   { href: "/reports", label: "Reports", icon: BarChart2 },
-  { href: "/settings", label: "Settings", icon: Settings },
 ]
+
+function initialsFrom(email: string | null | undefined) {
+  if (!email) return "T"
+  const name = email.split("@")[0] ?? "T"
+  return name.slice(0, 2).toUpperCase()
+}
 
 export default function NavSidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const email = session?.user?.email ?? null
+  const displayName = session?.user?.name ?? email?.split("@")[0] ?? "You"
 
   return (
-    <aside className="flex h-full w-full flex-col border-r border-[#222222] bg-[#0a0a0a] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      <div className="flex items-center justify-between px-4 py-5">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#22c55e]">
-            <span className="text-sm font-bold text-white">N</span>
-          </div>
-          <span className="font-semibold text-[#F1F5F9]">Tracker</span>
-        </div>
+    <aside className="flex h-full w-full flex-col bg-bg-base pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      <div className="flex items-center justify-between px-5 py-6">
+        <BrandMark />
         {onClose && (
           <button
             type="button"
             onClick={onClose}
             aria-label="Close navigation"
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-[#94A3B8] hover:bg-[#111111] hover:text-[#F1F5F9] md:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-muted hover:bg-bg-card hover:text-text md:hidden"
           >
             <X size={18} />
           </button>
         )}
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-2">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
         {navLinks.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href))
           return (
@@ -69,30 +71,42 @@ export default function NavSidebar({ onClose }: { onClose?: () => void }) {
               key={href}
               href={href}
               onClick={onClose}
-              className={`flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+              className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
                 isActive
-                  ? "bg-[#111111] text-[#F1F5F9]"
-                  : "text-[#94A3B8] hover:bg-[#111111] hover:text-[#F1F5F9]"
+                  ? "bg-accent/10 text-text"
+                  : "text-muted hover:bg-bg-hover hover:text-text"
               }`}
             >
-              <Icon size={16} />
+              <Icon size={16} className={isActive ? "text-accent" : ""} />
               {label}
             </Link>
           )
         })}
       </nav>
 
-      <div className="border-t border-[#222222] px-2 py-3">
-        {session?.user?.email && (
-          <p className="mb-1 truncate px-3 text-xs text-[#94A3B8]">{session.user.email}</p>
-        )}
-        <div className="mb-2 flex items-center gap-1.5 px-3">
-          <span className="text-xs text-[#64748B]">Age</span>
-          <span className="rounded-md bg-[#111111] px-1.5 py-0.5 text-xs font-semibold text-[#22c55e]">
-            {getCurrentAge()}
-          </span>
-        </div>
+      <div className="space-y-1 px-3 pb-3">
+        <Link
+          href="/settings"
+          onClick={onClose}
+          className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+            pathname.startsWith("/settings")
+              ? "bg-accent/10 text-text"
+              : "text-muted hover:bg-bg-hover hover:text-text"
+          }`}
+        >
+          <Settings size={16} className={pathname.startsWith("/settings") ? "text-accent" : ""} />
+          Settings
+        </Link>
         <SignOutButton />
+        <div className="mt-2 flex items-center gap-3 rounded-xl bg-bg-card px-3 py-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/15 font-display text-xs text-accent">
+            {initialsFrom(email)}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm text-text">{displayName}</p>
+            <p className="text-xs text-accent">Age {getCurrentAge()}</p>
+          </div>
+        </div>
       </div>
     </aside>
   )

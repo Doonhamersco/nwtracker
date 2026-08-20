@@ -26,24 +26,24 @@ interface MetricsClientProps {
 export function MetricsClient({ metricDefs, historyRows }: MetricsClientProps) {
   if (metricDefs.length === 0) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <p className="text-[#94A3B8] text-sm">No life metrics configured yet.</p>
+      <div className="min-h-screen bg-bg-base flex items-center justify-center">
+        <p className="text-muted text-sm">No life metrics configured yet.</p>
       </div>
     );
   }
 
   return (
     <div className="max-w-5xl">
-        <h1 className="text-2xl font-bold text-[#F1F5F9] mb-6">Life Metrics</h1>
+        <h1 className="font-display text-3xl font-medium tracking-tight text-text mb-6">Life Metrics</h1>
 
         {historyRows.length === 0 ? (
-          <div className="text-[#94A3B8] text-sm">No metric data yet.</div>
+          <div className="text-muted text-sm">No metric data yet.</div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-[#222222]">
+          <div className="overflow-x-auto rounded-2xl border border-border">
             <table className="w-full min-w-[500px]">
               <thead>
-                <tr className="border-b border-[#222222] bg-[#111111]">
-                  <th className="px-4 py-3 text-xs font-semibold text-[#94A3B8] uppercase tracking-wider text-left">
+                <tr className="border-b border-border bg-bg-card">
+                  <th className="px-4 py-3 text-xs font-semibold text-muted uppercase tracking-wider text-left">
                     Date
                   </th>
                   {metricDefs.map((m) => (
@@ -53,7 +53,7 @@ export function MetricsClient({ metricDefs, historyRows }: MetricsClientProps) {
                       style={{ color: m.displayColor }}
                     >
                       {m.name}
-                      <span className="text-[#94A3B8] font-normal ml-1 normal-case">
+                      <span className="text-muted font-normal ml-1 normal-case">
                         ({m.unit})
                       </span>
                     </th>
@@ -64,11 +64,11 @@ export function MetricsClient({ metricDefs, historyRows }: MetricsClientProps) {
                 {historyRows.map((row, i) => (
                   <tr
                     key={row.id}
-                    className={`border-b border-[#222222] ${
-                      i % 2 === 0 ? "bg-[#0a0a0a]" : "bg-[#111111]/50"
-                    } hover:bg-[#1a1a1a] transition-colors`}
+                    className={`border-b border-border ${
+                      i % 2 === 0 ? "bg-bg-base" : "bg-bg-card/50"
+                    } hover:bg-bg-hover transition-colors`}
                   >
-                    <td className="px-4 py-3 text-sm text-[#94A3B8]">
+                    <td className="px-4 py-3 text-sm text-muted">
                       {new Date(row.takenAt).toLocaleDateString("en-GB", {
                         day: "numeric",
                         month: "short",
@@ -82,7 +82,7 @@ export function MetricsClient({ metricDefs, historyRows }: MetricsClientProps) {
                       return (
                         <td key={m.id} className="px-4 py-3 text-right">
                           <span
-                            className={`font-mono text-sm ${isBelowGoal ? "text-red-400" : "text-[#F1F5F9]"}`}
+                            className={`font-mono text-sm ${isBelowGoal ? "text-negative" : "text-text"}`}
                           >
                             {val !== undefined
                               ? val.toLocaleString("en-GB", {
