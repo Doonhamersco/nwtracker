@@ -18,7 +18,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { height: 100%; }
+html {
+  height: 100%;
+}
 
 body {
   background-color: #0a0a0a;
@@ -26,4 +28,15 @@ body {
   font-family: var(--font-geist-sans, system-ui, sans-serif);
   height: 100%;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Keep form controls at 16px on phones so iOS does not zoom on focus */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 1rem;
+  }
 }

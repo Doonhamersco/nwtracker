@@ -100,12 +100,12 @@ export default function SettingsPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 rounded-xl border border-[#222222] bg-[#111111] p-1">
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-[#222222] bg-[#111111] p-1">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 flex-1 justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            className={`flex min-h-11 items-center gap-2 flex-1 justify-center rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === id
                 ? "bg-[#22c55e] text-white"
                 : "text-[#94A3B8] hover:text-[#F1F5F9] hover:bg-[#1a1a1a]"
@@ -120,11 +120,11 @@ export default function SettingsPage() {
       {/* Accounts section */}
       {activeTab === "accounts" && (
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-[#F1F5F9]">Accounts</h2>
             <button
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-1.5 bg-[#22c55e] text-white rounded-lg px-3 py-2 text-sm hover:bg-[#16a34a] transition-colors"
+              className="flex items-center gap-1.5 self-start bg-[#22c55e] text-white rounded-lg px-3 py-2 text-sm hover:bg-[#16a34a] transition-colors"
             >
               <Plus size={14} />
               Add Account
@@ -154,7 +154,8 @@ export default function SettingsPage() {
             ) : accounts.length === 0 ? (
               <p className="py-8 text-center text-sm text-[#94A3B8]">No accounts yet.</p>
             ) : (
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-[#222222] bg-[#0a0a0a]">
                     {["Account", "Type", "Category", "Currency", "Status", "Actions"].map((h) => (
@@ -213,6 +214,7 @@ export default function SettingsPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </Card>
         </div>
@@ -225,7 +227,7 @@ export default function SettingsPage() {
 
           <Card>
             <div className="flex flex-col gap-4">
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="font-medium text-[#F1F5F9]">Hevy API Key</h3>
                   <p className="mt-1 text-sm text-[#94A3B8]">
@@ -295,7 +297,7 @@ export default function SettingsPage() {
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <button
                   onClick={() => triggerDownload("/api/export/json", "nwtracker-export.json")}
                   className="flex items-center gap-2 bg-[#22c55e] text-white rounded-lg px-4 py-2 text-sm hover:bg-[#16a34a] transition-colors"
@@ -337,7 +339,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                 <div className="rounded-lg border border-[#222222] bg-[#0a0a0a] p-3">
                   <p className="text-xs text-[#94A3B8] uppercase tracking-wide">Stack</p>
                   <p className="mt-1 text-[#F1F5F9]">Next.js 16 · TypeScript · SQLite</p>

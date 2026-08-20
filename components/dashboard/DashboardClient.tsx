@@ -152,10 +152,9 @@ export function DashboardClient({
   });
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
         {/* Title row */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-4">
           <div>
             <h1 className="text-2xl font-bold text-[#F1F5F9]">Net Worth</h1>
             {latestSnapshot && (
@@ -187,7 +186,7 @@ export function DashboardClient({
             <TimeframeSelector value={timeframe} onChange={setTimeframe} />
             <Link
               href="/checkin"
-              className="bg-[#22c55e] text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-[#16a34a] transition-colors whitespace-nowrap"
+              className="w-full sm:w-auto text-center bg-[#22c55e] text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-[#16a34a] transition-colors whitespace-nowrap"
             >
               Monthly Check-in
             </Link>
@@ -309,7 +308,6 @@ export function DashboardClient({
             previousValuations={visiblePreviousValuations}
           />
         </Card>
-      </div>
     </div>
   );
 }

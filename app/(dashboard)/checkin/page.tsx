@@ -18,11 +18,10 @@ export default async function CheckinPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-3xl">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-2">
             <h1 className="text-2xl font-bold text-[#F1F5F9]">Monthly Check-in</h1>
             <Link
               href="/dashboard"
@@ -39,7 +38,6 @@ export default async function CheckinPage() {
         </div>
 
         <CheckinFormClient draft={draft} />
-      </div>
     </div>
   );
 }

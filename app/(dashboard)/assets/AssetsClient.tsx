@@ -135,7 +135,7 @@ export function AssetsClient({ accounts, lastSnapshotDate }: AssetsClientProps) 
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
           { label: "Total Assets", value: totalAssets, color: "#22C55E" },
           { label: "Total Liabilities", value: totalLiabilities, color: "#EF4444" },
@@ -148,7 +148,7 @@ export function AssetsClient({ accounts, lastSnapshotDate }: AssetsClientProps) 
             <p className="text-xs font-medium uppercase tracking-wider text-[#94A3B8]">
               {label}
             </p>
-            <p className="mt-2 text-2xl font-bold" style={{ color }}>
+            <p className="mt-2 text-xl font-bold whitespace-nowrap sm:text-2xl" style={{ color }}>
               {fmt(value)}
             </p>
           </div>

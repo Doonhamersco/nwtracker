@@ -219,7 +219,7 @@ export function WeightManager({ readings, onReadingsChange }: WeightManagerProps
             <button
               onClick={() => handleDelete(r.id)}
               disabled={deletingId === r.id}
-              className="p-1.5 text-[#4B5563] hover:text-[#EF4444] transition-colors rounded-md hover:bg-[#222222] opacity-0 group-hover:opacity-100 disabled:opacity-50"
+              className="p-1.5 text-[#4B5563] hover:text-[#EF4444] transition-colors rounded-md hover:bg-[#222222] opacity-100 md:opacity-0 md:group-hover:opacity-100 disabled:opacity-50"
               title="Delete"
             >
               <svg

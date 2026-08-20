@@ -287,12 +287,12 @@ export default function ReportsPage() {
             )}
 
             {/* Timeframe selector */}
-            <div className="flex gap-1 rounded-lg border border-[#222222] bg-[#111111] p-1">
+            <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-[#222222] bg-[#111111] p-1">
               {TIMEFRAMES.map((tf) => (
                 <button
                   key={tf}
                   onClick={() => setTimeframe(tf)}
-                  className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`shrink-0 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
                     timeframe === tf
                       ? "bg-[#22c55e] text-white"
                       : "text-[#94A3B8] hover:text-[#F1F5F9]"
@@ -310,8 +310,9 @@ export default function ReportsPage() {
             <p className="text-[#94A3B8]">No snapshot data available for this timeframe.</p>
           </Card>
         ) : (
-          <Card>
-            <ResponsiveContainer width="100%" height={280}>
+          <Card className="min-w-0">
+            <div className="h-52 w-full min-w-0 sm:h-[280px]">
+            <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={nwChartData} margin={{ top: 10, right: 10, bottom: 0, left: 10 }}>
                 <defs>
                   <linearGradient id="nwGradient" x1="0" y1="0" x2="0" y2="1">
@@ -332,7 +333,7 @@ export default function ReportsPage() {
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={formatGbp}
-                  width={72}
+                  width={52}
                 />
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
@@ -352,13 +353,14 @@ export default function ReportsPage() {
                 />
               </AreaChart>
             </ResponsiveContainer>
+            </div>
           </Card>
         )}
 
         {/* Data table */}
         {nwTableData.length > 0 && (
           <div className="overflow-x-auto rounded-2xl border border-[#222222]">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="border-b border-[#222222] bg-[#111111]">
                   {["Date", hideStudentLoan ? "Liquid NW" : "Net Worth", "MoM Change", "YoY Change"].map((h) => (

@@ -22,7 +22,7 @@ export function ChangeIndicator({ change, percent }: ChangeIndicatorProps) {
       : "";
 
   return (
-    <span className={`text-sm font-medium ${color}`}>
+    <span className={`whitespace-nowrap text-sm font-medium ${color}`}>
       {arrow} £{formattedChange}
       {percentStr}
     </span>

@@ -56,7 +56,7 @@ export function MetricRow({ metric, value, onChange }: MetricRowProps) {
             onChange(num !== null && isNaN(num) ? null : num);
           }}
           placeholder={metric.lastValue !== null ? String(metric.lastValue) : "—"}
-          className={`w-28 rounded-lg border border-[#222222] bg-[#111111] text-[#F1F5F9] text-sm font-mono px-3 py-2 focus:outline-none focus:border-[#22c55e] transition-colors ${metric.isHevyMetric ? "opacity-60 cursor-not-allowed" : ""}`}
+          className={`w-full min-h-11 rounded-lg border border-[#222222] bg-[#111111] text-[#F1F5F9] text-sm font-mono px-3 py-2 focus:outline-none focus:border-[#22c55e] transition-colors sm:w-28 ${metric.isHevyMetric ? "opacity-60 cursor-not-allowed" : ""}`}
         />
         <span className="text-xs text-[#94A3B8] w-10">{metric.unit}</span>
       </div>

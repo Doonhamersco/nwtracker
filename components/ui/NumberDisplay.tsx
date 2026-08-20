@@ -27,7 +27,7 @@ export function NumberDisplay({
       className={cn(
         "font-mono tabular-nums",
         isNegative ? "text-[#EF4444]" : "text-[#F1F5F9]",
-        large && "font-bold text-4xl md:text-5xl",
+        large && "whitespace-nowrap font-bold text-3xl sm:text-4xl md:text-5xl",
         className
       )}
     >

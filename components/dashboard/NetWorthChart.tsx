@@ -304,7 +304,8 @@ export function NetWorthChart({
         })}
       </div>
 
-      <ResponsiveContainer width="100%" height={256}>
+      <div className="h-52 w-full min-w-0 sm:h-64">
+        <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={chartData} margin={{ top: 10, right: rightMargin, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
@@ -336,7 +337,7 @@ export function NetWorthChart({
             tick={{ fill: showNetWorth ? "#94A3B8" : "transparent", fontSize: 11 }}
             axisLine={false}
             tickLine={false}
-            width={showNetWorth ? 60 : 1}
+            width={showNetWorth ? 48 : 1}
           />
           {hasWeightData && (
             <YAxis
@@ -397,7 +398,8 @@ export function NetWorthChart({
               )
           )}
         </ComposedChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

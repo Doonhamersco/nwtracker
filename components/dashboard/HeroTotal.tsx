@@ -47,7 +47,7 @@ export function HeroTotal({
         </span>
       )}
       {change !== null && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-xs text-[#94A3B8]">vs last snapshot</span>
           <ChangeIndicator change={change} percent={percent} />
         </div>

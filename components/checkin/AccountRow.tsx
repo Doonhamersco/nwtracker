@@ -70,7 +70,7 @@ export function AccountRow({ account, value, onChange }: AccountRowProps) {
       </div>
 
       {/* Right: input + preview + actions */}
-      <div className="flex items-center gap-3 flex-shrink-0">
+      <div className="flex w-full items-center gap-3 sm:w-auto sm:flex-shrink-0">
         {/* Preview GBP */}
         {!isGbp && (
           <div className="text-right hidden sm:block">
@@ -82,7 +82,7 @@ export function AccountRow({ account, value, onChange }: AccountRowProps) {
         )}
 
         {/* Number input */}
-        <div className="flex flex-col items-end">
+        <div className="flex min-w-0 flex-1 flex-col items-stretch sm:flex-none sm:items-end">
           <div className="relative">
             {isGbp && (
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] text-sm">£</span>
@@ -98,7 +98,7 @@ export function AccountRow({ account, value, onChange }: AccountRowProps) {
                   onChange(num, false);
                 }
               }}
-              className={`w-36 rounded-lg border border-[#222222] bg-[#111111] text-[#F1F5F9] text-sm font-mono py-2 pr-3 focus:outline-none focus:border-[#22c55e] transition-colors ${isGbp ? "pl-7" : "pl-3"}`}
+              className={`w-full min-h-11 rounded-lg border border-[#222222] bg-[#111111] text-[#F1F5F9] text-sm font-mono py-2 pr-3 focus:outline-none focus:border-[#22c55e] transition-colors sm:w-36 ${isGbp ? "pl-7" : "pl-3"}`}
             />
           </div>
           {/* Mobile GBP preview */}
@@ -113,7 +113,7 @@ export function AccountRow({ account, value, onChange }: AccountRowProps) {
         <button
           onClick={() => onChange(value, true)}
           title="Mark as unchanged"
-          className={`text-xs px-2 py-1.5 rounded-lg border transition-colors ${
+          className={`min-h-11 shrink-0 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
             isCarriedForward
               ? "bg-[#22c55e]/20 border-[#22c55e] text-[#22c55e]"
               : "border-[#222222] text-[#94A3B8] hover:border-[#22c55e]/50 hover:text-[#F1F5F9]"
