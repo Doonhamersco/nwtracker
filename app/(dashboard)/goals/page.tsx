@@ -1,15 +1,23 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { GoalCard, type GoalWithProgress } from "@/components/goals/GoalCard"
 import { GoalForm } from "@/components/goals/GoalForm"
 import { Target } from "lucide-react"
+
+type FormMode = { kind: "create" } | { kind: "edit" | "complete"; goalId: string }
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<GoalWithProgress[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [showForm, setShowForm] = useState(false)
+  const [formMode, setFormMode] = useState<FormMode | null>(null)
+  const formRef = useRef<HTMLDivElement>(null)
+
+  const editingItem =
+    formMode && formMode.kind !== "create"
+      ? goals.find((g) => g.goal.id === formMode.goalId) ?? null
+      : null
 
   async function fetchGoals() {
     try {
@@ -30,6 +38,9 @@ export default function GoalsPage() {
       const res = await fetch(`/api/goals/${id}`, { method: "DELETE" })
       if (!res.ok && res.status !== 204) throw new Error("Failed to delete goal")
       setGoals((prev) => prev.filter((g) => g.goal.id !== id))
+      if (formMode && formMode.kind !== "create" && formMode.goalId === id) {
+        setFormMode(null)
+      }
     } catch (err) {
       console.error("Delete goal error:", err)
     }
@@ -39,9 +50,19 @@ export default function GoalsPage() {
     void fetchGoals()
   }, [])
 
+  useEffect(() => {
+    if (formMode) {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [formMode])
+
+  function closeFormAndRefresh() {
+    setFormMode(null)
+    void fetchGoals()
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#F1F5F9]">Goals</h1>
@@ -49,9 +70,9 @@ export default function GoalsPage() {
             Track progress toward your financial targets
           </p>
         </div>
-        {!showForm && (
+        {!formMode && (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => setFormMode({ kind: "create" })}
             className="bg-[#22c55e] text-white rounded-lg px-4 py-2 text-sm hover:bg-[#16a34a] transition-colors"
           >
             + New Goal
@@ -59,23 +80,39 @@ export default function GoalsPage() {
         )}
       </div>
 
-      {/* New goal form */}
-      {showForm && (
-        <div className="rounded-2xl border border-[#222222] bg-[#111111] p-5">
+      {formMode && (
+        <div ref={formRef} className="rounded-2xl border border-[#222222] bg-[#111111] p-5">
           <h2 className="mb-4 text-base font-semibold text-[#F1F5F9]">
-            Create New Goal
+            {formMode.kind === "create"
+              ? "Create New Goal"
+              : formMode.kind === "complete"
+                ? "Complete Goal"
+                : "Edit Goal"}
           </h2>
           <GoalForm
-            onSuccess={() => {
-              setShowForm(false)
-              void fetchGoals()
-            }}
-            onCancel={() => setShowForm(false)}
+            key={`${formMode.kind}-${formMode.kind === "create" ? "new" : formMode.goalId}`}
+            initial={
+              editingItem
+                ? {
+                    id: editingItem.goal.id,
+                    name: editingItem.goal.name,
+                    description: editingItem.goal.description,
+                    targetValue: editingItem.goal.targetValue,
+                    targetDate: editingItem.goal.targetDate,
+                    metricType: editingItem.goal.metricType,
+                    linkedCategory: editingItem.goal.linkedCategory,
+                    completedAt: editingItem.goal.completedAt,
+                    files: editingItem.files,
+                  }
+                : undefined
+            }
+            defaultMarkCompleted={formMode.kind === "complete"}
+            onSuccess={closeFormAndRefresh}
+            onCancel={() => setFormMode(null)}
           />
         </div>
       )}
 
-      {/* Loading */}
       {loading && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[...Array(4)].map((_, i) => (
@@ -84,15 +121,13 @@ export default function GoalsPage() {
         </div>
       )}
 
-      {/* Error */}
       {!loading && error && (
         <div className="rounded-2xl border border-[#EF4444]/40 bg-[#EF4444]/10 p-4 text-sm text-[#EF4444]">
           {error}
         </div>
       )}
 
-      {/* Empty state */}
-      {!loading && !error && goals.length === 0 && !showForm && (
+      {!loading && !error && goals.length === 0 && !formMode && (
         <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-[#222222] bg-[#111111] py-16 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#22c55e]/20">
             <Target className="text-[#22c55e]" size={28} />
@@ -104,7 +139,7 @@ export default function GoalsPage() {
             </p>
           </div>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => setFormMode({ kind: "create" })}
             className="bg-[#22c55e] text-white rounded-lg px-4 py-2 text-sm hover:bg-[#16a34a] transition-colors"
           >
             Create Goal
@@ -112,13 +147,14 @@ export default function GoalsPage() {
         </div>
       )}
 
-      {/* Goals grid */}
       {!loading && !error && goals.length > 0 && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {goals.map((item) => (
             <GoalCard
               key={item.goal.id}
               item={item}
+              onEdit={() => setFormMode({ kind: "edit", goalId: item.goal.id })}
+              onComplete={() => setFormMode({ kind: "complete", goalId: item.goal.id })}
               onDelete={() => handleDelete(item.goal.id)}
             />
           ))}

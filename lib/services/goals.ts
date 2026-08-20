@@ -9,6 +9,7 @@ import {
   accounts,
 } from "@/db/schema";
 import { projectGoalCompletion } from "@/lib/engine/net-worth";
+import { listFiles, deleteFile, type FileRow } from "@/lib/services/files";
 import type { CreateGoalInput, UpdateGoalInput } from "@/lib/validators/goals";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ export interface GoalProgress {
 export interface GoalWithProgress {
   goal: GoalRow;
   progress: GoalProgress;
+  files: FileRow[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -165,6 +167,18 @@ export function computeGoalProgress(
   const baseline = goal.baselineValue;
   const target = goal.targetValue;
 
+  if (goal.completedAt) {
+    return {
+      currentValue: Math.max(currentValue, target),
+      baselineValue: baseline ?? null,
+      targetValue: target,
+      progressPercent: 100,
+      isOnTrack: true,
+      projectedCompletionDate: null,
+      status: "achieved",
+    };
+  }
+
   let progressPercent: number | null = null;
   if (baseline !== null && baseline !== undefined && target !== baseline) {
     progressPercent = ((currentValue - baseline) / (target - baseline)) * 100;
@@ -234,6 +248,7 @@ export function createGoal(input: CreateGoalInput): GoalRow {
         linkedCategory: input.linkedCategory ?? null,
         baselineValue: null,
         baselineDate: null,
+        completedAt: input.completedAt ?? null,
         isActive: input.isActive ?? true,
         createdAt: new Date().toISOString(),
       });
@@ -257,6 +272,7 @@ export function createGoal(input: CreateGoalInput): GoalRow {
       linkedCategory: input.linkedCategory ?? null,
       baselineValue,
       baselineDate,
+      completedAt: input.completedAt ?? null,
       isActive: input.isActive ?? true,
     })
     .run();
@@ -276,6 +292,7 @@ export function updateGoal(id: string, input: UpdateGoalInput): GoalRow {
       ...(input.targetValue !== undefined && { targetValue: input.targetValue }),
       ...(input.targetDate !== undefined && { targetDate: input.targetDate }),
       ...(input.isActive !== undefined && { isActive: input.isActive }),
+      ...(input.completedAt !== undefined && { completedAt: input.completedAt }),
     })
     .where(eq(goals.id, id))
     .run();
@@ -285,7 +302,37 @@ export function updateGoal(id: string, input: UpdateGoalInput): GoalRow {
 }
 
 export function deleteGoal(id: string): void {
+  for (const file of listFiles("GOAL", id)) {
+    deleteFile(file.id);
+  }
   db.delete(goals).where(eq(goals.id, id)).run();
+}
+
+function progressForGoal(goal: GoalRow): GoalProgress {
+  const { currentValue, dataPoints } = getCurrentValueForGoal(goal);
+  if (currentValue !== null) {
+    return computeGoalProgress(goal, currentValue, dataPoints);
+  }
+  if (goal.completedAt) {
+    return computeGoalProgress(goal, 0, []);
+  }
+  return {
+    currentValue: 0,
+    baselineValue: goal.baselineValue ?? null,
+    targetValue: goal.targetValue,
+    progressPercent: null,
+    isOnTrack: null,
+    projectedCompletionDate: null,
+    status: "no_data",
+  };
+}
+
+function withProgress(goal: GoalRow): GoalWithProgress {
+  return {
+    goal,
+    progress: progressForGoal(goal),
+    files: listFiles("GOAL", goal.id),
+  };
 }
 
 export function listGoals(): GoalWithProgress[] {
@@ -295,42 +342,11 @@ export function listGoals(): GoalWithProgress[] {
     .where(eq(goals.isActive, true))
     .all();
 
-  return allGoals.map((goal) => {
-    const { currentValue, dataPoints } = getCurrentValueForGoal(goal);
-    const progress =
-      currentValue !== null
-        ? computeGoalProgress(goal, currentValue, dataPoints)
-        : {
-            currentValue: 0,
-            baselineValue: goal.baselineValue ?? null,
-            targetValue: goal.targetValue,
-            progressPercent: null,
-            isOnTrack: null,
-            projectedCompletionDate: null,
-            status: "no_data" as const,
-          };
-
-    return { goal, progress };
-  });
+  return allGoals.map(withProgress);
 }
 
 export function getGoalById(id: string): GoalWithProgress | null {
   const [goal] = db.select().from(goals).where(eq(goals.id, id)).all();
   if (!goal) return null;
-
-  const { currentValue, dataPoints } = getCurrentValueForGoal(goal);
-  const progress =
-    currentValue !== null
-      ? computeGoalProgress(goal, currentValue, dataPoints)
-      : {
-          currentValue: 0,
-          baselineValue: goal.baselineValue ?? null,
-          targetValue: goal.targetValue,
-          progressPercent: null,
-          isOnTrack: null,
-          projectedCompletionDate: null,
-          status: "no_data" as const,
-        };
-
-  return { goal, progress };
+  return withProgress(goal);
 }

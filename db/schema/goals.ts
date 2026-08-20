@@ -28,6 +28,8 @@ export const goals = sqliteTable("goals", {
   // Baseline value at goal creation — progress % computed against this
   baselineValue: real("baseline_value"),
   baselineDate: text("baseline_date"), // ISO date string
+  // Set when the user marks the goal complete (ISO date YYYY-MM-DD)
+  completedAt: text("completed_at"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   createdAt: text("created_at")
     .notNull()

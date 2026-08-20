@@ -112,6 +112,23 @@ describe("listGoals", () => {
     expect(item).toBeDefined();
     expect(item!.progress).toBeDefined();
     expect(item!.progress.currentValue).toBe(40000);
+    expect(item!.files).toEqual([]);
+  });
+
+  it("treats a manually completed goal as achieved without snapshot data", () => {
+    const goal = createGoal({
+      name: "Join the police",
+      targetValue: 1,
+      targetDate: "2026-08-31",
+      metricType: "NET_WORTH",
+    });
+    updateGoal(goal.id, { completedAt: "2026-08-20", description: "Offer accepted." });
+
+    const item = listGoals().find((g) => g.goal.id === goal.id);
+    expect(item).toBeDefined();
+    expect(item!.progress.status).toBe("achieved");
+    expect(item!.progress.progressPercent).toBe(100);
+    expect(item!.goal.completedAt).toBe("2026-08-20");
   });
 
   it("does not return inactive goals", () => {
@@ -144,6 +161,7 @@ describe("computeGoalProgress", () => {
       baselineValue: 0,
       baselineDate: null,
       isActive: true,
+      completedAt: null,
       createdAt: new Date().toISOString(),
     };
 
@@ -169,6 +187,7 @@ describe("computeGoalProgress", () => {
       baselineValue: 0,
       baselineDate: null,
       isActive: true,
+      completedAt: null,
       createdAt: new Date().toISOString(),
     };
 
@@ -190,6 +209,7 @@ describe("computeGoalProgress", () => {
       baselineValue: null,
       baselineDate: null,
       isActive: true,
+      completedAt: null,
       createdAt: new Date().toISOString(),
     };
 
@@ -214,11 +234,35 @@ describe("computeGoalProgress", () => {
       baselineValue: null,
       baselineDate: null,
       isActive: true,
+      completedAt: null,
       createdAt: new Date().toISOString(),
     };
 
     const progress = computeGoalProgress(goalRow, 50000, []);
     expect(progress.progressPercent).toBeNull();
+  });
+
+  it("status = 'achieved' when completedAt is set even if current is below target", () => {
+    const goalRow = {
+      id: randomUUID(),
+      name: "Manually completed",
+      description: "I did it",
+      targetValue: 90,
+      targetDate: "2027-01-01",
+      metricType: "NET_WORTH" as const,
+      linkedMetricId: null,
+      linkedCategory: null,
+      baselineValue: 0,
+      baselineDate: null,
+      isActive: true,
+      completedAt: "2026-08-20",
+      createdAt: new Date().toISOString(),
+    };
+
+    const progress = computeGoalProgress(goalRow, 0, []);
+    expect(progress.status).toBe("achieved");
+    expect(progress.progressPercent).toBe(100);
+    expect(progress.currentValue).toBe(90);
   });
 });
 
@@ -243,6 +287,36 @@ describe("updateGoal", () => {
     expect(updated.targetValue).toBe(75000);
     expect(updated.targetDate).toBe("2028-01-01");
     expect(updated.metricType).toBe("NET_WORTH");
+  });
+
+  it("marks a goal complete via completedAt", () => {
+    const goal = createGoal({
+      name: "Finish this",
+      targetValue: 1,
+      targetDate: "2027-01-01",
+      metricType: "NET_WORTH",
+    });
+
+    const updated = updateGoal(goal.id, {
+      description: "Done — attached evidence.",
+      completedAt: "2026-08-20",
+    });
+
+    expect(updated.completedAt).toBe("2026-08-20");
+    expect(updated.description).toBe("Done — attached evidence.");
+  });
+
+  it("clears completion when completedAt is null", () => {
+    const goal = createGoal({
+      name: "Reopen me",
+      targetValue: 1,
+      targetDate: "2027-01-01",
+      metricType: "NET_WORTH",
+      completedAt: "2026-01-01",
+    });
+
+    const updated = updateGoal(goal.id, { completedAt: null });
+    expect(updated.completedAt).toBeNull();
   });
 
   it("throws if goal not found", () => {

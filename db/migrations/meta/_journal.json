@@ -22,6 +22,13 @@
       "when": 1781358615099,
       "tag": "0002_happy_khan",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787265620253,
+      "tag": "0003_lazy_ronan",
+      "breakpoints": true
     }
   ]
 }
