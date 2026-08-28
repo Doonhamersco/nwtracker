@@ -26,6 +26,7 @@ afterEach(() => {
   // Clean up temp directory
   fs.rmSync(tmpDir, { recursive: true, force: true });
   delete process.env.DATA_DIR;
+  delete process.env.DB_PATH;
 });
 
 const { saveFile, getFile, listFiles, deleteFile } = await import("@/lib/services/files");
@@ -55,6 +56,26 @@ describe("saveFile", () => {
 
     const saved = fs.readFileSync(absolutePath);
     expect(saved.toString()).toBe("Hello, World!");
+  });
+
+  it("stores files next to the database when DATA_DIR is unset", () => {
+    delete process.env.DATA_DIR;
+    const dbDir = fs.mkdtempSync(path.join(os.tmpdir(), "nwtracker-db-"));
+    process.env.DB_PATH = path.join(dbDir, "nwtracker.db");
+
+    const row = saveFile({
+      displayName: "beside-db.txt",
+      mimeType: "text/plain",
+      data: Buffer.from("volume"),
+      linkedToType: "GOAL",
+      linkedToId: "goal-1",
+    });
+
+    const absolutePath = path.join(dbDir, row.storagePath);
+    expect(fs.existsSync(absolutePath)).toBe(true);
+    expect(fs.readFileSync(absolutePath).toString()).toBe("volume");
+
+    fs.rmSync(dbDir, { recursive: true, force: true });
   });
 });
 

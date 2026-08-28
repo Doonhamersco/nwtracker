@@ -24,6 +24,7 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 # Overridden at runtime by the Fly volume mount
 ENV DB_PATH=/data/nwtracker.db
+ENV DATA_DIR=/data
 
 # App source needed at runtime
 COPY --from=deps    /app/node_modules  ./node_modules

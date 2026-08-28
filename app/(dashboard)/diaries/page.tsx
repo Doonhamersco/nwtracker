@@ -5,6 +5,7 @@ import { Film } from "lucide-react"
 import { DiaryCard } from "@/components/diaries/DiaryCard"
 import { DiaryForm } from "@/components/diaries/DiaryForm"
 import { DiaryPlayer } from "@/components/diaries/DiaryPlayer"
+import { DiaryUnlock, type CryptoConfig } from "@/components/diaries/DiaryUnlock"
 import type { VideoDiary } from "@/components/diaries/types"
 
 type FormMode = { kind: "create" } | { kind: "edit"; diaryId: string }
@@ -21,6 +22,8 @@ function groupByYear(diaries: VideoDiary[]): Array<[string, VideoDiary[]]> {
 }
 
 export default function DiariesPage() {
+  const [cryptoConfig, setCryptoConfig] = useState<CryptoConfig | null>(null)
+  const [masterKey, setMasterKey] = useState<Uint8Array | null>(null)
   const [diaries, setDiaries] = useState<VideoDiary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -33,6 +36,14 @@ export default function DiariesPage() {
   const selected = diaries.find((d) => d.id === selectedId) ?? null
   const editingItem =
     formMode?.kind === "edit" ? diaries.find((d) => d.id === formMode.diaryId) ?? null : null
+  const unlocked = Boolean(masterKey)
+
+  async function loadCrypto() {
+    const res = await fetch("/api/diaries/crypto")
+    if (!res.ok) throw new Error("Failed to load vault config")
+    const data = (await res.json()) as CryptoConfig
+    setCryptoConfig(data)
+  }
 
   async function fetchDiaries(selectId?: string) {
     try {
@@ -74,8 +85,15 @@ export default function DiariesPage() {
   }
 
   useEffect(() => {
-    void fetchDiaries()
-    // Initial load only
+    void (async () => {
+      try {
+        await loadCrypto()
+        await fetchDiaries()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred")
+        setLoading(false)
+      }
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -98,25 +116,54 @@ export default function DiariesPage() {
     void fetchDiaries(diary.id)
   }
 
+  if (loading && !cryptoConfig) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="h-40 animate-pulse rounded-2xl bg-bg-card" />
+      </div>
+    )
+  }
+
+  if (cryptoConfig && !unlocked) {
+    return (
+      <DiaryUnlock
+        config={cryptoConfig}
+        onUnlocked={(key, nextConfig) => {
+          setMasterKey(key)
+          setCryptoConfig(nextConfig)
+        }}
+      />
+    )
+  }
+
+  if (!masterKey) return null
+
   const yearGroups = groupByYear(diaries)
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-medium tracking-tight text-text">Diaries</h1>
-          <p className="mt-1 text-sm text-muted">
-            Quarterly video notes, hosted on YouTube
-          </p>
+          <p className="mt-1 text-sm text-muted">Encrypted on this device, stored as ciphertext</p>
         </div>
-        {!formMode && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setFormMode({ kind: "create" })}
-            className="rounded-lg bg-accent px-4 py-2 text-sm text-bg-base transition-colors hover:bg-accent-hover"
+            type="button"
+            onClick={() => setMasterKey(null)}
+            className="rounded-lg border border-border px-3 py-2 text-sm text-muted transition-colors hover:bg-bg-card hover:text-text"
           >
-            + Add diary
+            Lock
           </button>
-        )}
+          {!formMode && (
+            <button
+              onClick={() => setFormMode({ kind: "create" })}
+              className="rounded-lg bg-accent px-4 py-2 text-sm text-bg-base transition-colors hover:bg-accent-hover"
+            >
+              + Add diary
+            </button>
+          )}
+        </div>
       </div>
 
       {formMode && (
@@ -126,6 +173,7 @@ export default function DiariesPage() {
           </h2>
           <DiaryForm
             key={formMode.kind === "create" ? "new" : formMode.diaryId}
+            masterKey={masterKey}
             initial={editingItem ?? undefined}
             onSuccess={handleSaved}
             onCancel={() => setFormMode(null)}
@@ -137,6 +185,7 @@ export default function DiariesPage() {
         <div ref={playerRef}>
           <DiaryPlayer
             diary={selected}
+            masterKey={masterKey}
             onEdit={() => setFormMode({ kind: "edit", diaryId: selected.id })}
             onDelete={() => handleDelete(selected.id)}
           />
@@ -165,7 +214,7 @@ export default function DiariesPage() {
           <div>
             <p className="font-semibold text-text">Add your first diary</p>
             <p className="mt-1 text-sm text-muted">
-              Paste an unlisted YouTube URL to start the archive.
+              Upload a video. It is encrypted here before it is stored.
             </p>
           </div>
           <button
@@ -189,6 +238,7 @@ export default function DiariesPage() {
                   <DiaryCard
                     key={diary.id}
                     diary={diary}
+                    masterKey={masterKey}
                     selected={diary.id === selectedId}
                     onSelect={() => {
                       shouldScrollRef.current = true

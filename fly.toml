@@ -6,6 +6,7 @@ primary_region = 'lhr'
 [env]
   PORT = '3000'
   NODE_ENV = 'production'
+  DATA_DIR = '/data'
 
 [http_service]
   internal_port = 3000

@@ -9,7 +9,11 @@ export type FileRow = typeof files.$inferSelect;
 export type FileLinkType = (typeof fileLinkTypeEnum)[number];
 
 function getDataDir(): string {
-  return process.env.DATA_DIR ?? path.join(process.cwd(), "data");
+  if (process.env.DATA_DIR) return process.env.DATA_DIR;
+  // Keep uploads on the same volume as SQLite so they survive deploys.
+  const dbPath =
+    process.env.DB_PATH ?? path.join(process.cwd(), "data", "nwtracker.db");
+  return path.dirname(dbPath);
 }
 
 function resolveStoragePath(relativePath: string): string {
