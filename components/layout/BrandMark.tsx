@@ -1,4 +1,7 @@
+"use client"
+
 import { cn } from "@/lib/utils"
+import { useProfileOptional } from "./ProfileProvider"
 
 interface BrandMarkProps {
   size?: "sm" | "md" | "lg"
@@ -12,17 +15,28 @@ const sizeClasses = {
 }
 
 export function BrandMark({ size = "md", className }: BrandMarkProps) {
+  const profile = useProfileOptional()
+  const avatarUrl = profile?.avatarUrl ?? null
   const s = sizeClasses[size]
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <div
-        className={cn(
-          "flex items-center justify-center rounded-full border border-accent font-display text-accent",
-          s.mark
-        )}
-      >
-        T
-      </div>
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatarUrl}
+          alt=""
+          className={cn("rounded-full border border-accent object-cover", s.mark)}
+        />
+      ) : (
+        <div
+          className={cn(
+            "flex items-center justify-center rounded-full border border-accent font-display text-accent",
+            s.mark
+          )}
+        >
+          T
+        </div>
+      )}
       <span className={cn("font-display font-medium tracking-tight text-text", s.word)}>
         Tracker
       </span>

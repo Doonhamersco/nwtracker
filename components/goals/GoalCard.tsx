@@ -1,6 +1,7 @@
 "use client"
 
 import { Card } from "@/components/ui/Card"
+import { useAccentColor } from "@/components/layout/ProfileProvider"
 
 interface GoalProgress {
   currentValue: number
@@ -47,13 +48,6 @@ interface GoalCardProps {
   onDelete: () => void
 }
 
-const STATUS_CONFIG = {
-  achieved: { label: "Achieved", color: "#c5a059", barColor: "bg-positive", badgeBg: "bg-positive/20 text-positive" },
-  on_track: { label: "On Track", color: "#c5a059", barColor: "bg-accent", badgeBg: "bg-accent/20 text-accent" },
-  at_risk: { label: "At Risk", color: "#c4a35a", barColor: "bg-accent/60", badgeBg: "bg-accent/20 text-accent" },
-  no_data: { label: "No Data", color: "#a89b8c", barColor: "bg-muted", badgeBg: "bg-muted/20 text-muted" },
-}
-
 function formatValue(value: number): string {
   if (value >= 1_000_000) {
     return "£" + (value / 1_000_000).toFixed(2) + "M"
@@ -73,8 +67,15 @@ function formatDate(dateStr: string): string {
 }
 
 export function GoalCard({ item, onEdit, onComplete, onDelete }: GoalCardProps) {
+  const accentColor = useAccentColor()
   const { goal, progress, files = [] } = item
   const isCompleted = Boolean(goal.completedAt) || progress.status === "achieved"
+  const STATUS_CONFIG = {
+    achieved: { label: "Achieved", color: accentColor, barColor: "bg-positive", badgeBg: "bg-positive/20 text-positive" },
+    on_track: { label: "On Track", color: accentColor, barColor: "bg-accent", badgeBg: "bg-accent/20 text-accent" },
+    at_risk: { label: "At Risk", color: "#c4a35a", barColor: "bg-accent/60", badgeBg: "bg-accent/20 text-accent" },
+    no_data: { label: "No Data", color: "#a89b8c", barColor: "bg-muted", badgeBg: "bg-muted/20 text-muted" },
+  }
   const cfg = STATUS_CONFIG[isCompleted ? "achieved" : progress.status]
   const clampedPercent = isCompleted
     ? 100

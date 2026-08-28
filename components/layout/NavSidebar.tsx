@@ -15,6 +15,7 @@ import {
 import { useSession } from "next-auth/react"
 import SignOutButton from "./SignOutButton"
 import { BrandMark } from "./BrandMark"
+import { useProfileOptional } from "./ProfileProvider"
 
 const DATE_OF_BIRTH = new Date("2005-01-01")
 
@@ -46,6 +47,7 @@ function initialsFrom(email: string | null | undefined) {
 export default function NavSidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const profile = useProfileOptional()
   const email = session?.user?.email ?? null
   const displayName = session?.user?.name ?? email?.split("@")[0] ?? "You"
 
@@ -100,15 +102,24 @@ export default function NavSidebar({ onClose }: { onClose?: () => void }) {
           Settings
         </Link>
         <SignOutButton />
-        <div className="mt-2 flex items-center gap-3 rounded-xl bg-bg-card px-3 py-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/15 font-display text-xs text-accent">
-            {initialsFrom(email)}
+        <Link
+          href="/settings?tab=profile"
+          onClick={onClose}
+          className="mt-2 flex items-center gap-3 rounded-xl bg-bg-card px-3 py-3 transition-colors hover:bg-bg-hover"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent/15 font-display text-xs text-accent">
+            {profile?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              initialsFrom(email)
+            )}
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm text-text">{displayName}</p>
             <p className="text-xs text-accent">Age {getCurrentAge()}</p>
           </div>
-        </div>
+        </Link>
       </div>
     </aside>
   )

@@ -16,6 +16,8 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { Card } from "@/components/ui/Card"
+import { useAccentColor } from "@/components/layout/ProfileProvider"
+import { paletteFromAccent } from "@/lib/profile-theme"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -71,19 +73,20 @@ function cutoffDate(tf: Timeframe): Date | null {
   return d
 }
 
-const TOOLTIP_STYLE = {
-  backgroundColor: "#141210",
-  border: "1px solid #2a261f",
-  borderRadius: 8,
-  color: "#f7f1e6",
-  fontSize: 12,
-}
-
-const AXIS_STYLE = { fill: "#9a8d7a", fontSize: 11 }
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
+  const accentColor = useAccentColor()
+  const palette = paletteFromAccent(accentColor)
+  const TOOLTIP_STYLE = {
+    backgroundColor: palette.bgCard,
+    border: `1px solid ${palette.border}`,
+    borderRadius: 8,
+    color: "#f7f1e6",
+    fontSize: 12,
+  }
+  const AXIS_STYLE = { fill: palette.muted, fontSize: 11 }
+  const gridStroke = palette.borderStrong
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([])
   const [details, setDetails] = useState<SnapshotDetail[]>([])
   const [studentLoanIds, setStudentLoanIds] = useState<Set<string>>(new Set())
@@ -208,7 +211,7 @@ export default function ReportsPage() {
 
   // Category breakdown chart
   const CATEGORY_COLORS: Record<string, string> = {
-    CASH: "#c5a059",
+    CASH: accentColor,
     ISA: "#7a8faf",
     CRYPTO: "#c4a35a",
     VEHICLE: "#8fa3b8",
@@ -316,16 +319,16 @@ export default function ReportsPage() {
               <AreaChart data={nwChartData} margin={{ top: 10, right: 10, bottom: 0, left: 10 }}>
                 <defs>
                   <linearGradient id="nwGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#c5a059" stopOpacity={0.22} />
-                    <stop offset="95%" stopColor="#c5a059" stopOpacity={0} />
+                    <stop offset="5%" stopColor={accentColor} stopOpacity={0.22} />
+                    <stop offset="95%" stopColor={accentColor} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#3a342c" />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
                 <XAxis
                   dataKey="date"
                   tick={AXIS_STYLE}
                   tickLine={false}
-                  axisLine={{ stroke: "#3a342c" }}
+                  axisLine={{ stroke: gridStroke }}
                   interval="preserveStartEnd"
                 />
                 <YAxis
@@ -345,7 +348,7 @@ export default function ReportsPage() {
                 <Area
                   type="monotone"
                   dataKey="value"
-                  stroke="#c5a059"
+                  stroke={accentColor}
                   strokeWidth={2}
                   fill="url(#nwGradient)"
                   dot={false}
@@ -425,14 +428,14 @@ export default function ReportsPage() {
           <Card>
             <ResponsiveContainer width="100%" height={260}>
               <ComposedChart data={incomeSpendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#3a342c" />
-                <XAxis dataKey="date" tick={AXIS_STYLE} tickLine={false} axisLine={{ stroke: "#3a342c" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                <XAxis dataKey="date" tick={AXIS_STYLE} tickLine={false} axisLine={{ stroke: gridStroke }} />
                 <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} tickFormatter={formatGbp} width={72} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
                 <Legend />
-                <Bar dataKey="income" name="Income" fill="#c5a059" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="income" name="Income" fill={accentColor} radius={[3, 3, 0, 0]} />
                 <Bar dataKey="spend" name="Spend" fill="#e07060" radius={[3, 3, 0, 0]} />
-                <Line type="monotone" dataKey="savingsRate" name="Savings Rate %" stroke="#c5a059" strokeWidth={2} dot={false} yAxisId="right" />
+                <Line type="monotone" dataKey="savingsRate" name="Savings Rate %" stroke={accentColor} strokeWidth={2} dot={false} yAxisId="right" />
               </ComposedChart>
             </ResponsiveContainer>
           </Card>
@@ -464,8 +467,8 @@ export default function ReportsPage() {
                     </linearGradient>
                   ))}
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#3a342c" />
-                <XAxis dataKey="date" tick={AXIS_STYLE} tickLine={false} axisLine={{ stroke: "#3a342c" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+                <XAxis dataKey="date" tick={AXIS_STYLE} tickLine={false} axisLine={{ stroke: gridStroke }} />
                 <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} tickFormatter={formatGbp} width={72} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: unknown) => formatGbp(v as number)} />
                 <Legend />

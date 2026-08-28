@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Badge } from "@/components/ui/Badge"
+import { useAccentColor } from "@/components/layout/ProfileProvider"
 
 export interface AccountWithHistory {
   id: string
@@ -109,6 +110,7 @@ function Section({
 }
 
 export function AssetsClient({ accounts, lastSnapshotDate }: AssetsClientProps) {
+  const accentColor = useAccentColor()
   const assets = accounts.filter((a) => a.type === "ASSET")
   const liabilities = accounts.filter((a) => a.type === "LIABILITY")
 
@@ -137,9 +139,9 @@ export function AssetsClient({ accounts, lastSnapshotDate }: AssetsClientProps) 
       {/* Summary cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
-          { label: "Total Assets", value: totalAssets, color: "#c5a059" },
+          { label: "Total Assets", value: totalAssets, color: accentColor },
           { label: "Total Liabilities", value: totalLiabilities, color: "#e07060" },
-          { label: "Net Worth", value: netWorth, color: "#c5a059" },
+          { label: "Net Worth", value: netWorth, color: accentColor },
         ].map(({ label, value, color }) => (
           <div
             key={label}
@@ -176,7 +178,7 @@ export function AssetsClient({ accounts, lastSnapshotDate }: AssetsClientProps) 
               </tr>
             </thead>
             <tbody>
-              <Section title="Assets" accounts={assets} color="#c5a059" />
+              <Section title="Assets" accounts={assets} color={accentColor} />
               <Section title="Liabilities" accounts={liabilities} color="#e07060" />
             </tbody>
           </table>

@@ -13,6 +13,8 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useAccentColor } from "@/components/layout/ProfileProvider";
+import { paletteFromAccent } from "@/lib/profile-theme";
 import type { Timeframe } from "./TimeframeSelector";
 
 interface SnapshotSummary {
@@ -49,19 +51,10 @@ interface NetWorthChartProps {
 // ─── Series config ────────────────────────────────────────────────────────────
 // To add a new series in the future, add an entry here.
 
-const GOLD = "#c5a059";
 const DUSTY_BLUE = "#8a9bb0";
-const ESPRESSO = "#141210";
 const IVORY = "#f7f1e6";
-const TAUPE = "#9a8d7a";
-const WARM_BORDER = "#2a261f";
 
-const SERIES = [
-  { key: "netWorth", label: "Net Worth", color: GOLD },
-  { key: "weight",   label: "Weight (kg)", color: DUSTY_BLUE },
-] as const;
-
-type SeriesKey = (typeof SERIES)[number]["key"];
+type SeriesKey = "netWorth" | "weight";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -143,11 +136,13 @@ interface EventLabelProps {
   label: string;
   eventId: string;
   activeEventId: string | null;
+  accentColor: string;
+  chrome: { card: string; muted: string; border: string };
   onEnter: (id: string) => void;
   onLeave: () => void;
 }
 
-function EventLabel({ viewBox, emoji, label, eventId, activeEventId, onEnter, onLeave }: EventLabelProps) {
+function EventLabel({ viewBox, emoji, label, eventId, activeEventId, accentColor, chrome, onEnter, onLeave }: EventLabelProps) {
   const x = viewBox?.x ?? 0;
   const chartHeight = viewBox?.height ?? 0;
   const isActive = activeEventId === eventId;
@@ -159,11 +154,11 @@ function EventLabel({ viewBox, emoji, label, eventId, activeEventId, onEnter, on
 
   return (
     <g>
-      <line x1={x} y1={0} x2={x} y2={markerY - 14} stroke={TAUPE} strokeWidth={1} strokeDasharray="3 3" opacity={0.6} />
+      <line x1={x} y1={0} x2={x} y2={markerY - 14} stroke={chrome.muted} strokeWidth={1} strokeDasharray="3 3" opacity={0.6} />
       <circle
         cx={x} cy={markerY} r={12}
-        fill={ESPRESSO}
-        stroke={isActive ? GOLD : WARM_BORDER}
+        fill={chrome.card}
+        stroke={isActive ? accentColor : chrome.border}
         strokeWidth={1.5}
         style={{ cursor: "pointer" }}
         onMouseEnter={() => onEnter(eventId)}
@@ -174,7 +169,7 @@ function EventLabel({ viewBox, emoji, label, eventId, activeEventId, onEnter, on
       </text>
       {isActive && (
         <g>
-          <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} rx={6} fill={ESPRESSO} stroke={WARM_BORDER} strokeWidth={1} />
+          <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} rx={6} fill={chrome.card} stroke={chrome.border} strokeWidth={1} />
           <text x={x} y={tooltipY + tooltipHeight / 2 + 5} textAnchor="middle" fontSize={11} fill={IVORY} fontFamily="system-ui, sans-serif">
             {emoji} {label.length > 22 ? label.slice(0, 22) + "…" : label}
           </text>
@@ -194,6 +189,16 @@ export function NetWorthChart({
   weightReadings = [],
   variant = "default",
 }: NetWorthChartProps) {
+  const accentColor = useAccentColor();
+  const palette = paletteFromAccent(accentColor);
+  const ESPRESSO = palette.bgCard;
+  const TAUPE = palette.muted;
+  const WARM_BORDER = palette.border;
+  const chrome = { card: ESPRESSO, muted: TAUPE, border: WARM_BORDER };
+  const SERIES = [
+    { key: "netWorth" as const, label: "Net Worth", color: accentColor },
+    { key: "weight" as const, label: "Weight (kg)", color: DUSTY_BLUE },
+  ];
   const [visible, setVisible] = useState<Set<SeriesKey>>(new Set(["netWorth"]));
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
 
@@ -319,8 +324,8 @@ export function NetWorthChart({
         <ComposedChart data={chartData} margin={{ top: 8, right: rightMargin, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={GOLD} stopOpacity={0.22} />
-              <stop offset="95%" stopColor={GOLD} stopOpacity={0} />
+              <stop offset="5%" stopColor={accentColor} stopOpacity={0.22} />
+              <stop offset="95%" stopColor={accentColor} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={WARM_BORDER} vertical={false} />
@@ -367,11 +372,11 @@ export function NetWorthChart({
             yAxisId="left"
             type="monotone"
             dataKey="value"
-            stroke={showNetWorth ? GOLD : "transparent"}
+            stroke={showNetWorth ? accentColor : "transparent"}
             strokeWidth={1.75}
             fill={showNetWorth ? "url(#netWorthGradient)" : "transparent"}
             dot={false}
-            activeDot={showNetWorth ? { r: 4, fill: GOLD, stroke: ESPRESSO, strokeWidth: 2 } : false}
+            activeDot={showNetWorth ? { r: 4, fill: accentColor, stroke: ESPRESSO, strokeWidth: 2 } : false}
             connectNulls
           />
           {hasWeightData && (
@@ -401,6 +406,8 @@ export function NetWorthChart({
                       label={ev.label}
                       eventId={ev.id}
                       activeEventId={activeEventId}
+                      accentColor={accentColor}
+                      chrome={chrome}
                       onEnter={handleEnter}
                       onLeave={handleLeave}
                     />

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sparkline } from "@/components/metrics/Sparkline";
+import { useAccentColor } from "@/components/layout/ProfileProvider";
 
 export interface WeightReading {
   id: string;
@@ -95,6 +96,7 @@ function WeightForm({
 }
 
 export function WeightManager({ readings, onReadingsChange }: WeightManagerProps) {
+  const accentColor = useAccentColor();
   const [showAddForm, setShowAddForm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -198,7 +200,7 @@ export function WeightManager({ readings, onReadingsChange }: WeightManagerProps
 
       {sparkData.length > 1 && (
         <div className="h-16">
-          <Sparkline data={sparkData} color="#c5a059" height={64} />
+          <Sparkline data={sparkData} color={accentColor} height={64} />
         </div>
       )}
 

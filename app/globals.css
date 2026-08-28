@@ -1,24 +1,44 @@
 @import "tailwindcss";
 
+/*
+  Defaults live on :root as --nw-*. @theme inline maps Tailwind colour
+  utilities onto those variables so bg-accent / text-positive / border-border
+  can be recoloured at runtime without baking gold into the stylesheet.
+*/
+:root {
+  --nw-bg-base: #0c0b0a;
+  --nw-bg-card: #141210;
+  --nw-bg-hover: #1c1914;
+  --nw-border: #2a261f;
+  --nw-border-strong: #3d372e;
+  --nw-text: #f7f1e6;
+  --nw-muted: #9a8d7a;
+  --nw-placeholder: #6b6156;
+  --nw-positive: #c5a059;
+  --nw-negative: #d47a6a;
+  --nw-accent: #c5a059;
+  --nw-accent-hover: #b48d45;
+  --nw-weight: #8a9bb0;
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-playfair);
 
-  /* Warm Ledger — closer to the mockup */
-  --color-bg-base:        #0c0b0a;
-  --color-bg-card:        #141210;
-  --color-bg-hover:       #1c1914;
-  --color-border:         #2a261f;
-  --color-border-strong:  #3d372e;
-  --color-text:           #f7f1e6;
-  --color-muted:          #9a8d7a;
-  --color-placeholder:    #6b6156;
-  --color-positive:       #c5a059;
-  --color-negative:       #d47a6a;
-  --color-accent:         #c5a059;
-  --color-accent-hover:   #b48d45;
-  --color-weight:         #8a9bb0;
+  --color-bg-base: var(--nw-bg-base);
+  --color-bg-card: var(--nw-bg-card);
+  --color-bg-hover: var(--nw-bg-hover);
+  --color-border: var(--nw-border);
+  --color-border-strong: var(--nw-border-strong);
+  --color-text: var(--nw-text);
+  --color-muted: var(--nw-muted);
+  --color-placeholder: var(--nw-placeholder);
+  --color-positive: var(--nw-positive);
+  --color-negative: var(--nw-negative);
+  --color-accent: var(--nw-accent);
+  --color-accent-hover: var(--nw-accent-hover);
+  --color-weight: var(--nw-weight);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -28,8 +48,8 @@ html {
 }
 
 body {
-  background-color: var(--color-bg-base);
-  color: var(--color-text);
+  background-color: var(--nw-bg-base);
+  color: var(--nw-text);
   font-family: var(--font-geist-sans, system-ui, sans-serif);
   height: 100%;
   -webkit-font-smoothing: antialiased;

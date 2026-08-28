@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { useAccentColor } from "@/components/layout/ProfileProvider";
 
 interface AccountSummary {
   category: string;
@@ -14,7 +15,6 @@ interface CategoryBreakdownBarProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  CASH: "#c5a059",
   ISA: "#d4b978",
   CRYPTO: "#a8843e",
   VEHICLE: "#8a7a5c",
@@ -36,6 +36,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export function CategoryBreakdownBar({ accounts }: CategoryBreakdownBarProps) {
+  const accentColor = useAccentColor();
   const assetAccounts = accounts.filter((a) => a.accountType === "ASSET" && a.valueGbp > 0);
 
   const categoryMap = new Map<string, number>();
@@ -60,7 +61,7 @@ export function CategoryBreakdownBar({ accounts }: CategoryBreakdownBarProps) {
       name: CATEGORY_LABELS[category] ?? category,
       value,
       percent: (value / total) * 100,
-      color: CATEGORY_COLORS[category] ?? "#9c8a62",
+      color: category === "CASH" ? accentColor : (CATEGORY_COLORS[category] ?? "#9c8a62"),
     }));
 
   return (

@@ -1,10 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { Card } from "@/components/ui/Card"
 import { AddAccountForm } from "@/components/settings/AddAccountForm"
 import { BrandMark } from "@/components/layout/BrandMark"
-import { Download, Key, Database, Info, Plus } from "lucide-react"
+import { Download, Key, Database, Info, Plus, User } from "lucide-react"
+import { ProfileForm } from "@/components/settings/ProfileForm"
+import { useRouter, useSearchParams } from "next/navigation"
 
 interface AccountRow {
   id: string
@@ -18,12 +20,37 @@ interface AccountRow {
 
 type HevyStatus = "loading" | "connected" | "error" | "unconfigured"
 
+type TabId = "profile" | "accounts" | "api" | "export" | "about"
+
+const TABS = [
+  { id: "profile" as const, label: "Profile", icon: User },
+  { id: "accounts" as const, label: "Accounts", icon: Database },
+  { id: "api" as const, label: "API Keys", icon: Key },
+  { id: "export" as const, label: "Export", icon: Download },
+  { id: "about" as const, label: "About", icon: Info },
+]
+
+function isTabId(value: string | null): value is TabId {
+  return TABS.some((t) => t.id === value)
+}
+
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="h-32 animate-pulse rounded-xl bg-bg-card" />}>
+      <SettingsPageInner />
+    </Suspense>
+  )
+}
+
+function SettingsPageInner() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get("tab")
   const [accounts, setAccounts] = useState<AccountRow[]>([])
   const [accountsLoading, setAccountsLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [hevyStatus, setHevyStatus] = useState<HevyStatus>("loading")
-  const [activeTab, setActiveTab] = useState<"accounts" | "api" | "export" | "about">("accounts")
+  const [activeTab, setActiveTab] = useState<TabId>(isTabId(tabParam) ? tabParam : "profile")
 
   async function fetchAccounts() {
     try {
@@ -83,12 +110,16 @@ export default function SettingsPage() {
     void checkHevyStatus()
   }, [])
 
-  const TABS = [
-    { id: "accounts" as const, label: "Accounts", icon: Database },
-    { id: "api" as const, label: "API Keys", icon: Key },
-    { id: "export" as const, label: "Export", icon: Download },
-    { id: "about" as const, label: "About", icon: Info },
-  ]
+  useEffect(() => {
+    if (isTabId(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam)
+    }
+  }, [tabParam, activeTab])
+
+  function selectTab(id: TabId) {
+    setActiveTab(id)
+    router.replace(`/settings?tab=${id}`, { scroll: false })
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -96,7 +127,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="font-display text-3xl font-medium tracking-tight text-text">Settings</h1>
         <p className="mt-1 text-sm text-muted">
-          Manage accounts, API keys, and data exports
+          Manage profile, accounts, API keys, and data exports
         </p>
       </div>
 
@@ -105,7 +136,7 @@ export default function SettingsPage() {
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            onClick={() => setActiveTab(id)}
+            onClick={() => selectTab(id)}
             className={`flex min-h-11 items-center gap-2 flex-1 justify-center rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
               activeTab === id
                 ? "bg-accent text-bg-base"
@@ -117,6 +148,8 @@ export default function SettingsPage() {
           </button>
         ))}
       </div>
+
+      {activeTab === "profile" && <ProfileForm />}
 
       {/* Accounts section */}
       {activeTab === "accounts" && (
