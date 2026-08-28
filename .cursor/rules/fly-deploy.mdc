@@ -1,0 +1,18 @@
+---
+description: Deploy to Fly.io after every git commit that is pushed
+alwaysApply: true
+---
+
+# Deploy to Fly after commit and push
+
+Production is https://nwtracker.fly.dev/ (`fly` app `nwtracker`, region `lhr`). A git push does not update that host by itself.
+
+Whenever you create a git commit and push it to origin:
+
+1. Immediately run `fly deploy -a nwtracker` from the repo root. Do not wait to be asked.
+2. Wait until the deploy finishes. Confirm with `fly status -a nwtracker` that a new image is live.
+3. If deploy fails (Dockerfile, migrations, health checks), fix it and deploy again.
+
+GitHub Actions (`.github/workflows/fly-deploy.yml`) also deploys on push to `main`. Still run `fly deploy` from this session after you push, unless a deploy for the same commit is already in progress.
+
+Never commit Fly tokens, `.env`, or GitHub secrets.

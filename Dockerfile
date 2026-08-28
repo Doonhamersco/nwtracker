@@ -3,7 +3,8 @@ FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# Lockfile was generated with npm 11; Alpine's bundled npm 10 rejects it.
+RUN npm install -g npm@11.6.2 && npm ci
 
 # ── Stage 2: build Next.js ─────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
