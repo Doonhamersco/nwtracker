@@ -8,3 +8,4 @@ export * from "./files";
 export * from "./events";
 export * from "./diaries";
 export * from "./profile";
+export * from "./subscriptions";

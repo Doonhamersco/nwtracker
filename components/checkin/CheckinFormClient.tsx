@@ -6,6 +6,7 @@ import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { AccountRow } from "@/components/checkin/AccountRow";
 import { MetricRow } from "@/components/checkin/MetricRow";
+import { partitionMetrics } from "@/lib/metrics-categories";
 
 interface DraftValuation {
   accountId: string;
@@ -83,6 +84,7 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
 
   const assetAccounts = draft.accounts.filter((a) => a.accountType === "ASSET");
   const liabilityAccounts = draft.accounts.filter((a) => a.accountType === "LIABILITY");
+  const { gym: gymMetrics, finance: financeMetrics } = partitionMetrics(draft.metrics);
 
   async function handleSubmit(isPartial: boolean) {
     setSubmitting(true);
@@ -192,18 +194,41 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
         </section>
       )}
 
-      {/* Life metrics section */}
-      {draft.metrics.length > 0 && (
+      {gymMetrics.length > 0 && (
         <section>
           <h2 className="text-base font-semibold text-text mb-3 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-accent" />
-            Life Metrics
+            Gym
             <span className="text-xs text-muted font-normal">
-              ({draft.metrics.length})
+              ({gymMetrics.length})
             </span>
           </h2>
           <div className="space-y-2">
-            {draft.metrics.map((m) => (
+            {gymMetrics.map((m) => (
+              <MetricRow
+                key={m.metricId}
+                metric={m}
+                value={metrics[m.metricId] ?? null}
+                onChange={(val) =>
+                  setMetrics((prev) => ({ ...prev, [m.metricId]: val }))
+                }
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {financeMetrics.length > 0 && (
+        <section>
+          <h2 className="text-base font-semibold text-text mb-3 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-positive" />
+            Finance
+            <span className="text-xs text-muted font-normal">
+              ({financeMetrics.length})
+            </span>
+          </h2>
+          <div className="space-y-2">
+            {financeMetrics.map((m) => (
               <MetricRow
                 key={m.metricId}
                 metric={m}

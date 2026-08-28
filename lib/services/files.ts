@@ -3,10 +3,10 @@ import fs from "fs";
 import path from "path";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db/client";
-import { files } from "@/db/schema";
+import { files, fileLinkTypeEnum } from "@/db/schema";
 
 export type FileRow = typeof files.$inferSelect;
-export type FileLinkType = "ACCOUNT" | "SNAPSHOT" | "GOAL";
+export type FileLinkType = (typeof fileLinkTypeEnum)[number];
 
 function getDataDir(): string {
   return process.env.DATA_DIR ?? path.join(process.cwd(), "data");

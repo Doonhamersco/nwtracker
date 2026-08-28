@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { saveFile, listFiles } from "@/lib/services/files";
+import { saveFile, listFiles, type FileLinkType } from "@/lib/services/files";
+import { fileLinkTypeEnum } from "@/db/schema";
+
+const FILE_LINK_TYPES = new Set<string>(fileLinkTypeEnum);
 
 export async function GET(req: NextRequest) {
   const linkedToType = req.nextUrl.searchParams.get("linkedToType");
@@ -56,9 +59,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!["ACCOUNT", "SNAPSHOT", "GOAL"].includes(linkedToType)) {
+  if (!FILE_LINK_TYPES.has(linkedToType)) {
     return NextResponse.json(
-      { error: "linkedToType must be ACCOUNT, SNAPSHOT, or GOAL" },
+      { error: "linkedToType must be ACCOUNT, SNAPSHOT, GOAL, or SUBSCRIPTION" },
       { status: 422 }
     );
   }
@@ -71,7 +74,7 @@ export async function POST(req: NextRequest) {
       displayName: file.name,
       mimeType: file.type || "application/octet-stream",
       data,
-      linkedToType: linkedToType as "ACCOUNT" | "SNAPSHOT" | "GOAL",
+      linkedToType: linkedToType as FileLinkType,
       linkedToId,
     });
 

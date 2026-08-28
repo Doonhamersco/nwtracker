@@ -5,6 +5,7 @@ export const fileLinkTypeEnum = [
   "ACCOUNT",
   "SNAPSHOT",
   "GOAL",
+  "SUBSCRIPTION",
 ] as const;
 
 export const files = sqliteTable("files", {

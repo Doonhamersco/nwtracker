@@ -160,6 +160,17 @@ describe("listFiles", () => {
     const goalFiles = listFiles("GOAL", "account-1");
     expect(goalFiles.length).toBe(1);
     expect(goalFiles[0].displayName).toBe("d.txt");
+
+    saveFile({
+      displayName: "logo.png",
+      mimeType: "image/png",
+      data: Buffer.from("logo"),
+      linkedToType: "SUBSCRIPTION",
+      linkedToId: "sub-1",
+    });
+    const subFiles = listFiles("SUBSCRIPTION", "sub-1");
+    expect(subFiles.length).toBe(1);
+    expect(subFiles[0].displayName).toBe("logo.png");
   });
 
   it("returns empty array when no matches", () => {

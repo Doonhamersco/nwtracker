@@ -7,6 +7,7 @@ import {
   lifeMetricDefinitions,
   lifeMetricReadings,
   goals,
+  subscriptions,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
@@ -19,6 +20,7 @@ export type FxRateRow = typeof fxRates.$inferSelect;
 export type MetricDefRow = typeof lifeMetricDefinitions.$inferSelect;
 export type MetricReadingRow = typeof lifeMetricReadings.$inferSelect;
 export type GoalRow = typeof goals.$inferSelect;
+export type SubscriptionRow = typeof subscriptions.$inferSelect;
 
 export interface ExportPayload {
   schemaVersion: number;
@@ -30,6 +32,7 @@ export interface ExportPayload {
   lifeMetricDefinitions: MetricDefRow[];
   lifeMetricReadings: MetricReadingRow[];
   goals: GoalRow[];
+  subscriptions: SubscriptionRow[];
 }
 
 export function exportToJson(): ExportPayload {
@@ -43,6 +46,7 @@ export function exportToJson(): ExportPayload {
     lifeMetricDefinitions: db.select().from(lifeMetricDefinitions).all(),
     lifeMetricReadings: db.select().from(lifeMetricReadings).all(),
     goals: db.select().from(goals).all(),
+    subscriptions: db.select().from(subscriptions).all(),
   };
 }
 

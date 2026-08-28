@@ -20,6 +20,7 @@ import {
   accountValuations,
   goals,
   lifeMetricDefinitions,
+  subscriptions,
 } from "@/db/schema";
 
 beforeEach(() => {
@@ -78,6 +79,15 @@ describe("exportToJson", () => {
       isActive: true,
     }).run();
 
+    db.insert(subscriptions).values({
+      id: randomUUID(),
+      name: "Netflix",
+      costGbp: 15.99,
+      billingCycle: "monthly",
+      category: "entertainment",
+      status: "active",
+    }).run();
+
     const payload = exportToJson();
 
     expect(payload.schemaVersion).toBe(EXPORT_SCHEMA_VERSION);
@@ -87,6 +97,8 @@ describe("exportToJson", () => {
     expect(payload.snapshots.length).toBeGreaterThanOrEqual(1);
     expect(payload.valuations.length).toBeGreaterThanOrEqual(1);
     expect(payload.goals.length).toBeGreaterThanOrEqual(1);
+    expect(payload.subscriptions.length).toBeGreaterThanOrEqual(1);
+    expect(payload.subscriptions.find((s) => s.name === "Netflix")).toBeDefined();
 
     expect(payload.accounts.find((a) => a.id === accountId)).toBeDefined();
     expect(payload.snapshots.find((s) => s.id === snapshotId)).toBeDefined();
@@ -102,6 +114,7 @@ describe("exportToJson", () => {
     expect(Array.isArray(payload.lifeMetricDefinitions)).toBe(true);
     expect(Array.isArray(payload.lifeMetricReadings)).toBe(true);
     expect(Array.isArray(payload.goals)).toBe(true);
+    expect(Array.isArray(payload.subscriptions)).toBe(true);
   });
 });
 
