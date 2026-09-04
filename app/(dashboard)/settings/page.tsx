@@ -13,6 +13,7 @@ interface AccountRow {
   name: string
   type: string
   category: string
+  wrapper: string
   currencyCode: string
   institution: string | null
   isActive: boolean
@@ -94,6 +95,15 @@ function SettingsPageInner() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: true }),
+    })
+    await fetchAccounts()
+  }
+
+  async function handleWrapper(id: string, wrapper: string) {
+    await fetch(`/api/accounts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ wrapper }),
     })
     await fetchAccounts()
   }
@@ -192,7 +202,7 @@ function SettingsPageInner() {
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-border bg-bg-base">
-                    {["Account", "Type", "Category", "Currency", "Status", "Actions"].map((h) => (
+                    {["Account", "Type", "Category", "Wrapper", "Currency", "Status", "Actions"].map((h) => (
                       <th
                         key={h}
                         className={`px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted ${
@@ -215,6 +225,18 @@ function SettingsPageInner() {
                       </td>
                       <td className="px-4 py-3 text-muted">{acc.type}</td>
                       <td className="px-4 py-3 text-muted">{acc.category}</td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={acc.wrapper ?? "NONE"}
+                          onChange={(e) => void handleWrapper(acc.id, e.target.value)}
+                          className="rounded-lg border border-border bg-bg-base px-2 py-1 text-xs text-text"
+                        >
+                          <option value="NONE">None</option>
+                          <option value="STOCKS_ISA">S&S ISA</option>
+                          <option value="CASH_ISA">Cash ISA</option>
+                          <option value="SIPP">SIPP</option>
+                        </select>
+                      </td>
                       <td className="px-4 py-3 text-muted">{acc.currencyCode}</td>
                       <td className="px-4 py-3">
                         <span

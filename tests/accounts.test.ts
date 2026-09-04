@@ -36,6 +36,7 @@ describe("createAccount", () => {
     expect(row.currencyCode).toBe("GBP");
     expect(row.isActive).toBe(true);
     expect(row.sortOrder).toBe(0);
+    expect(row.wrapper).toBe("NONE");
     expect(row.coingeckoId).toBeNull();
     expect(row.institution).toBeNull();
     expect(row.notes).toBeNull();
@@ -58,6 +59,17 @@ describe("createAccount", () => {
     expect(row.institution).toBe("Self-custody");
     expect(row.notes).toBe("Cold storage");
     expect(row.sortOrder).toBe(5);
+    expect(row.wrapper).toBe("NONE");
+  });
+
+  it("stores a SIPP wrapper", () => {
+    const row = createAccount({
+      name: "Vanguard SIPP",
+      type: "ASSET",
+      category: "STOCKS",
+      wrapper: "SIPP",
+    });
+    expect(row.wrapper).toBe("SIPP");
   });
 });
 

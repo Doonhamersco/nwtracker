@@ -15,14 +15,25 @@ export const accountCategoryEnum = [
   "OTHER_LIABILITY",
 ] as const;
 
+export const accountWrapperEnum = [
+  "NONE",
+  "STOCKS_ISA",
+  "SIPP",
+  "CASH_ISA",
+] as const;
+
 export type AccountType = (typeof accountTypeEnum)[number];
 export type AccountCategory = (typeof accountCategoryEnum)[number];
+export type AccountWrapper = (typeof accountWrapperEnum)[number];
 
 export const accounts = sqliteTable("accounts", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   type: text("type", { enum: accountTypeEnum }).notNull(),
   category: text("category", { enum: accountCategoryEnum }).notNull(),
+  wrapper: text("wrapper", { enum: accountWrapperEnum })
+    .notNull()
+    .default("NONE"),
   currencyCode: text("currency_code").notNull().default("GBP"),
   institution: text("institution"),
   notes: text("notes"),

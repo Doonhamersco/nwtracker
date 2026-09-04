@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { accountTypeEnum, accountCategoryEnum } from "@/db/schema";
+import {
+  accountTypeEnum,
+  accountCategoryEnum,
+  accountWrapperEnum,
+} from "@/db/schema";
 
 export const createAccountSchema = z.object({
   name: z.string().min(1).max(255),
@@ -10,6 +14,7 @@ export const createAccountSchema = z.object({
   institution: z.string().max(255).optional(),
   notes: z.string().max(2000).optional(),
   sortOrder: z.number().int().optional(),
+  wrapper: z.enum(accountWrapperEnum).optional(),
 });
 
 export const updateAccountSchema = createAccountSchema.partial();

@@ -10,6 +10,7 @@ import {
   Film,
   Target,
   BarChart2,
+  Compass,
   Settings,
   X,
 } from "lucide-react"
@@ -17,15 +18,16 @@ import { useSession } from "next-auth/react"
 import SignOutButton from "./SignOutButton"
 import { BrandMark } from "./BrandMark"
 import { useProfileOptional } from "./ProfileProvider"
+import { DATE_OF_BIRTH } from "@/lib/constants"
 
-const DATE_OF_BIRTH = new Date("2005-01-01")
+const DOB = new Date(DATE_OF_BIRTH)
 
 function getCurrentAge(): number {
   const today = new Date()
-  let age = today.getFullYear() - DATE_OF_BIRTH.getFullYear()
+  let age = today.getFullYear() - DOB.getFullYear()
   const hasBirthdayPassedThisYear =
-    today.getMonth() > DATE_OF_BIRTH.getMonth() ||
-    (today.getMonth() === DATE_OF_BIRTH.getMonth() && today.getDate() >= DATE_OF_BIRTH.getDate())
+    today.getMonth() > DOB.getMonth() ||
+    (today.getMonth() === DOB.getMonth() && today.getDate() >= DOB.getDate())
   if (!hasBirthdayPassedThisYear) age -= 1
   return age
 }
@@ -37,6 +39,7 @@ const navLinks = [
   { href: "/metrics", label: "Life Metrics", icon: Activity },
   { href: "/diaries", label: "Diaries", icon: Film },
   { href: "/goals", label: "Goals", icon: Target },
+  { href: "/plan", label: "Plan", icon: Compass },
   { href: "/reports", label: "Reports", icon: BarChart2 },
 ]
 

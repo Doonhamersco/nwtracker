@@ -57,6 +57,13 @@
       "when": 1787937918378,
       "tag": "0007_silky_sue_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1788517379291,
+      "tag": "0008_soft_nuke",
+      "breakpoints": true
     }
   ]
 }

@@ -40,6 +40,7 @@ export function createAccount(input: CreateAccountInput): AccountRow {
       institution: input.institution ?? null,
       notes: input.notes ?? null,
       sortOrder: input.sortOrder ?? 0,
+      wrapper: input.wrapper ?? "NONE",
       isActive: true,
     })
     .run();
@@ -71,6 +72,7 @@ export function updateAccount(
       }),
       ...(input.notes !== undefined && { notes: input.notes }),
       ...(input.sortOrder !== undefined && { sortOrder: input.sortOrder }),
+      ...(input.wrapper !== undefined && { wrapper: input.wrapper }),
     })
     .where(eq(accounts.id, id))
     .run();

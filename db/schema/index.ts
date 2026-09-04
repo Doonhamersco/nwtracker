@@ -9,3 +9,4 @@ export * from "./events";
 export * from "./diaries";
 export * from "./profile";
 export * from "./subscriptions";
+export * from "./career-plan";

@@ -115,6 +115,7 @@ describe("exportToJson", () => {
     expect(Array.isArray(payload.lifeMetricReadings)).toBe(true);
     expect(Array.isArray(payload.goals)).toBe(true);
     expect(Array.isArray(payload.subscriptions)).toBe(true);
+    expect(Array.isArray(payload.careerPlans)).toBe(true);
   });
 });
 

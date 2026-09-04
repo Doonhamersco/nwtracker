@@ -25,12 +25,20 @@ const ACCOUNT_CATEGORIES = [
   { value: "OTHER_LIABILITY", label: "Other Liability" },
 ] as const
 
+const ACCOUNT_WRAPPERS = [
+  { value: "NONE", label: "None" },
+  { value: "STOCKS_ISA", label: "Stocks & Shares ISA" },
+  { value: "CASH_ISA", label: "Cash ISA" },
+  { value: "SIPP", label: "SIPP" },
+] as const
+
 type AccountType = "ASSET" | "LIABILITY"
 
 export function AddAccountForm({ onSuccess, onCancel }: AddAccountFormProps) {
   const [name, setName] = useState("")
   const [type, setType] = useState<AccountType>("ASSET")
   const [category, setCategory] = useState("CASH")
+  const [wrapper, setWrapper] = useState("NONE")
   const [currencyCode, setCurrencyCode] = useState("GBP")
   const [coingeckoId, setCoingeckoId] = useState("")
   const [institution, setInstitution] = useState("")
@@ -50,6 +58,7 @@ export function AddAccountForm({ onSuccess, onCancel }: AddAccountFormProps) {
         name: name.trim(),
         type,
         category,
+        wrapper,
         currencyCode: currencyCode.trim().toUpperCase() || "GBP",
         institution: institution.trim() || undefined,
         notes: notes.trim() || undefined,
@@ -123,7 +132,11 @@ export function AddAccountForm({ onSuccess, onCancel }: AddAccountFormProps) {
           <label className={labelClass}>Category *</label>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value
+              setCategory(next)
+              if (next === "ISA" && wrapper === "NONE") setWrapper("STOCKS_ISA")
+            }}
             className={inputClass}
           >
             {ACCOUNT_CATEGORIES.map((c) => (
@@ -133,6 +146,24 @@ export function AddAccountForm({ onSuccess, onCancel }: AddAccountFormProps) {
             ))}
           </select>
         </div>
+      </div>
+
+      <div>
+        <label className={labelClass}>Plan wrapper</label>
+        <select
+          value={wrapper}
+          onChange={(e) => setWrapper(e.target.value)}
+          className={inputClass}
+        >
+          {ACCOUNT_WRAPPERS.map((w) => (
+            <option key={w.value} value={w.value}>
+              {w.label}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-muted">
+          Tag a Stocks &amp; Shares ISA or SIPP so the Plan page can overlay actual balances.
+        </p>
       </div>
 
       {/* Currency */}
