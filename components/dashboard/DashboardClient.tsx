@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { TimeframeSelector, type Timeframe } from "@/components/dashboard/TimeframeSelector";
+import { DebtToggle } from "@/components/dashboard/DebtToggle";
 import { HeroTotal } from "@/components/dashboard/HeroTotal";
 import { NetWorthChart, type NotableEvent } from "@/components/dashboard/NetWorthChart";
 import { CategoryBreakdownBar } from "@/components/dashboard/CategoryBreakdownBar";
@@ -41,7 +42,7 @@ interface DashboardClientProps {
   latestValuations: ValuationRow[];
   previousValuations: ValuationRow[];
   accounts: AccountRow[];
-  studentLoanBySnapshot: Record<string, number>;
+  debtBySnapshot: Record<string, number>;
   initialEvents: NotableEvent[];
   initialWeightReadings: WeightReading[];
 }
@@ -49,7 +50,7 @@ interface DashboardClientProps {
 function computeNetWorthFromValuations(
   valuations: ValuationRow[],
   accounts: AccountRow[],
-  hideStudentLoan: boolean
+  hideDebt: boolean
 ): number | null {
   if (valuations.length === 0) return null;
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
@@ -58,11 +59,25 @@ function computeNetWorthFromValuations(
   for (const v of valuations) {
     const acc = accountMap.get(v.accountId);
     if (!acc) continue;
-    if (hideStudentLoan && acc.category === "STUDENT_LOAN") continue;
+    if (hideDebt && acc.type === "LIABILITY") continue;
     counted = true;
     total += acc.type === "ASSET" ? v.valueGbp : -v.valueGbp;
   }
   return counted ? total : null;
+}
+
+function hasOutstandingDebt(
+  accounts: AccountRow[],
+  latestValuations: ValuationRow[]
+): boolean {
+  const liabilityIds = new Set(
+    accounts.filter((a) => a.type === "LIABILITY").map((a) => a.id)
+  );
+  if (liabilityIds.size === 0) return false;
+  if (latestValuations.length === 0) return true;
+  return latestValuations.some(
+    (v) => liabilityIds.has(v.accountId) && v.valueGbp > 0
+  );
 }
 
 export function DashboardClient({
@@ -70,16 +85,16 @@ export function DashboardClient({
   latestValuations,
   previousValuations,
   accounts,
-  studentLoanBySnapshot,
+  debtBySnapshot,
   initialEvents,
   initialWeightReadings,
 }: DashboardClientProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>("1Y");
   const [events, setEvents] = useState<NotableEvent[]>(initialEvents);
   const [weightReadings, setWeightReadings] = useState<WeightReading[]>(initialWeightReadings);
-  const [hideStudentLoan, setHideStudentLoan] = useState(false);
+  const [hideDebt, setHideDebt] = useState(false);
 
-  const hasStudentLoan = accounts.some((a) => a.category === "STUDENT_LOAN");
+  const hasDebt = hasOutstandingDebt(accounts, latestValuations);
 
   const sortedSnapshots = [...initialSnapshots].sort(
     (a, b) => new Date(b.takenAt).getTime() - new Date(a.takenAt).getTime()
@@ -91,53 +106,53 @@ export function DashboardClient({
   const fromValuations = computeNetWorthFromValuations(
     latestValuations,
     accounts,
-    hideStudentLoan
+    hideDebt
   );
   const prevFromValuations = computeNetWorthFromValuations(
     previousValuations,
     accounts,
-    hideStudentLoan
+    hideDebt
   );
 
   const heroNetWorth =
     fromValuations ??
     (latestSnapshot?.netWorthGbp !== null && latestSnapshot?.netWorthGbp !== undefined
       ? latestSnapshot.netWorthGbp +
-        (hideStudentLoan ? (studentLoanBySnapshot[latestSnapshot.id] ?? 0) : 0)
+        (hideDebt ? (debtBySnapshot[latestSnapshot.id] ?? 0) : 0)
       : null);
 
   const heroPrevious =
     prevFromValuations ??
     (previousSnapshot?.netWorthGbp !== null && previousSnapshot?.netWorthGbp !== undefined
       ? previousSnapshot.netWorthGbp +
-        (hideStudentLoan ? (studentLoanBySnapshot[previousSnapshot.id] ?? 0) : 0)
+        (hideDebt ? (debtBySnapshot[previousSnapshot.id] ?? 0) : 0)
       : null);
 
-  const chartSnapshots = hideStudentLoan
+  const chartSnapshots = hideDebt
     ? initialSnapshots.map((s) => ({
         ...s,
         netWorthGbp:
           s.netWorthGbp !== null
-            ? s.netWorthGbp + (studentLoanBySnapshot[s.id] ?? 0)
+            ? s.netWorthGbp + (debtBySnapshot[s.id] ?? 0)
             : null,
       }))
     : initialSnapshots;
 
-  const visibleAccounts = hideStudentLoan
-    ? accounts.filter((a) => a.category !== "STUDENT_LOAN")
+  const visibleAccounts = hideDebt
+    ? accounts.filter((a) => a.type !== "LIABILITY")
     : accounts;
 
-  const visibleLatestValuations = hideStudentLoan
+  const visibleLatestValuations = hideDebt
     ? latestValuations.filter((v) => {
         const acc = accounts.find((a) => a.id === v.accountId);
-        return acc?.category !== "STUDENT_LOAN";
+        return acc?.type !== "LIABILITY";
       })
     : latestValuations;
 
-  const visiblePreviousValuations = hideStudentLoan
+  const visiblePreviousValuations = hideDebt
     ? previousValuations.filter((v) => {
         const acc = accounts.find((a) => a.id === v.accountId);
-        return acc?.category !== "STUDENT_LOAN";
+        return acc?.type !== "LIABILITY";
       })
     : previousValuations;
 
@@ -158,24 +173,16 @@ export function DashboardClient({
             netWorthGbp={heroNetWorth}
             previousGbp={heroPrevious}
             loading={false}
-            label={hideStudentLoan ? "Liquid net worth" : "Net worth"}
+            label={hideDebt ? "Liquid net worth" : "Net worth"}
           />
           <div className="flex flex-col items-start gap-3 lg:items-end">
             <div className="flex flex-wrap items-center gap-2">
-              {hasStudentLoan && (
-                <button
-                  type="button"
-                  onClick={() => setHideStudentLoan((v) => !v)}
-                  aria-pressed={hideStudentLoan}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    hideStudentLoan
-                      ? "bg-accent/15 text-accent"
-                      : "text-muted hover:text-text hover:bg-bg-hover"
-                  }`}
-                >
-                  {hideStudentLoan ? "Liquid" : "Hide loan"}
-                </button>
-              )}
+              <DebtToggle
+                hasDebt={hasDebt}
+                hideDebt={hideDebt}
+                onToggle={() => setHideDebt((v) => !v)}
+                compact
+              />
               <TimeframeSelector value={timeframe} onChange={setTimeframe} />
             </div>
             <Link

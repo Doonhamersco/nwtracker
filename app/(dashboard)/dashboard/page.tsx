@@ -56,23 +56,23 @@ export default async function DashboardPage() {
     currencyCode: a.currencyCode,
   }));
 
-  // Student loan GBP per snapshot — used to derive liquid net worth on the client
-  const studentLoanIds = allAccounts
-    .filter((a) => a.category === "STUDENT_LOAN")
+  // Liability GBP per snapshot — used to derive liquid net worth when debt is hidden
+  const liabilityIds = allAccounts
+    .filter((a) => a.type === "LIABILITY")
     .map((a) => a.id);
-  const studentLoanBySnapshot: Record<string, number> = {};
-  if (studentLoanIds.length > 0) {
-    const loanVals = db
+  const debtBySnapshot: Record<string, number> = {};
+  if (liabilityIds.length > 0) {
+    const debtVals = db
       .select({
         snapshotId: accountValuations.snapshotId,
         valueGbp: accountValuations.valueGbp,
       })
       .from(accountValuations)
-      .where(inArray(accountValuations.accountId, studentLoanIds))
+      .where(inArray(accountValuations.accountId, liabilityIds))
       .all();
-    for (const v of loanVals) {
-      studentLoanBySnapshot[v.snapshotId] =
-        (studentLoanBySnapshot[v.snapshotId] ?? 0) + v.valueGbp;
+    for (const v of debtVals) {
+      debtBySnapshot[v.snapshotId] =
+        (debtBySnapshot[v.snapshotId] ?? 0) + v.valueGbp;
     }
   }
 
@@ -91,7 +91,7 @@ export default async function DashboardPage() {
       latestValuations={latestValuations}
       previousValuations={previousValuations}
       accounts={accountRows}
-      studentLoanBySnapshot={studentLoanBySnapshot}
+      debtBySnapshot={debtBySnapshot}
       initialEvents={initialEvents}
       initialWeightReadings={initialWeightReadings}
     />

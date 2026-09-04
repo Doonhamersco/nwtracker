@@ -16,6 +16,7 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { Card } from "@/components/ui/Card"
+import { DebtToggle } from "@/components/dashboard/DebtToggle"
 import { useAccentColor } from "@/components/layout/ProfileProvider"
 import { paletteFromAccent } from "@/lib/profile-theme"
 
@@ -44,6 +45,7 @@ interface SnapshotDetail {
 interface AccountRow {
   id: string
   category: string
+  type: string
 }
 
 type Timeframe = "3M" | "6M" | "1Y" | "2Y" | "All"
@@ -89,11 +91,11 @@ export default function ReportsPage() {
   const gridStroke = palette.borderStrong
   const [snapshots, setSnapshots] = useState<SnapshotSummary[]>([])
   const [details, setDetails] = useState<SnapshotDetail[]>([])
-  const [studentLoanIds, setStudentLoanIds] = useState<Set<string>>(new Set())
+  const [debtIds, setDebtIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [timeframe, setTimeframe] = useState<Timeframe>("1Y")
-  const [hideStudentLoan, setHideStudentLoan] = useState(false)
+  const [hideDebt, setHideDebt] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -110,12 +112,12 @@ export default function ReportsPage() {
 
         if (accountsRes.ok) {
           const accounts = (await accountsRes.json()) as AccountRow[]
-          setStudentLoanIds(
-            new Set(accounts.filter((a) => a.category === "STUDENT_LOAN").map((a) => a.id))
+          setDebtIds(
+            new Set(accounts.filter((a) => a.type === "LIABILITY").map((a) => a.id))
           )
         }
 
-        // Fetch last 24 snapshot details in parallel for category breakdown + loan amounts
+        // Fetch last 24 snapshot details in parallel for category breakdown + debt amounts
         const recent24 = sorted.slice(-24)
         const withNw = sorted.filter((s) => s.netWorthGbp !== null)
         const detailIds = new Set([...recent24, ...withNw].map((s) => s.id))
@@ -138,19 +140,28 @@ export default function ReportsPage() {
     void load()
   }, [])
 
-  const studentLoanBySnapshot = useMemo(() => {
+  const debtBySnapshot = useMemo(() => {
     const map: Record<string, number> = {}
-    if (studentLoanIds.size === 0) return map
+    if (debtIds.size === 0) return map
     for (const d of details) {
-      const loanGbp = d.valuations
-        .filter((v) => studentLoanIds.has(v.accountId))
+      const debtGbp = d.valuations
+        .filter((v) => debtIds.has(v.accountId))
         .reduce((sum, v) => sum + v.valueGbp, 0)
-      if (loanGbp > 0) map[d.snapshot.id] = loanGbp
+      if (debtGbp > 0) map[d.snapshot.id] = debtGbp
     }
     return map
-  }, [details, studentLoanIds])
+  }, [details, debtIds])
 
-  const hasStudentLoan = studentLoanIds.size > 0
+  const hasDebt = useMemo(() => {
+    if (debtIds.size === 0) return false
+    const latest = snapshots.at(-1)
+    if (!latest) return true
+    const detail = details.find((d) => d.snapshot.id === latest.id)
+    if (!detail) return true
+    return detail.valuations.some(
+      (v) => debtIds.has(v.accountId) && v.valueGbp > 0
+    )
+  }, [debtIds, snapshots, details])
 
   // Filter snapshots by timeframe
   const filteredSnapshots = useMemo(() => {
@@ -164,21 +175,21 @@ export default function ReportsPage() {
     return filteredSnapshots
       .map((s) => {
         if (s.netWorthGbp === null) return null
-        const value = hideStudentLoan
-          ? s.netWorthGbp + (studentLoanBySnapshot[s.id] ?? 0)
+        const value = hideDebt
+          ? s.netWorthGbp + (debtBySnapshot[s.id] ?? 0)
           : s.netWorthGbp
         return { date: formatDate(s.takenAt, true), value }
       })
       .filter((row): row is { date: string; value: number } => row !== null)
-  }, [filteredSnapshots, hideStudentLoan, studentLoanBySnapshot])
+  }, [filteredSnapshots, hideDebt, debtBySnapshot])
 
   // MoM and YoY change table
   const nwTableData = useMemo(() => {
     const rows = filteredSnapshots
       .map((s) => {
         if (s.netWorthGbp === null) return null
-        const netWorth = hideStudentLoan
-          ? s.netWorthGbp + (studentLoanBySnapshot[s.id] ?? 0)
+        const netWorth = hideDebt
+          ? s.netWorthGbp + (debtBySnapshot[s.id] ?? 0)
           : s.netWorthGbp
         return { s, netWorth }
       })
@@ -197,7 +208,7 @@ export default function ReportsPage() {
         }
       })
       .reverse() // newest first in table
-  }, [filteredSnapshots, hideStudentLoan, studentLoanBySnapshot])
+  }, [filteredSnapshots, hideDebt, debtBySnapshot])
 
   // Income vs spend chart — uses metric readings from details
   // We look for metrics by common names: income, spend, savings
@@ -270,24 +281,15 @@ export default function ReportsPage() {
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold text-text">
-            {hideStudentLoan ? "Liquid Net Worth History" : "Net Worth History"}
+            {hideDebt ? "Liquid Net Worth History" : "Net Worth History"}
           </h2>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {hasStudentLoan && (
-              <button
-                type="button"
-                onClick={() => setHideStudentLoan((v) => !v)}
-                aria-pressed={hideStudentLoan}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${
-                  hideStudentLoan
-                    ? "bg-accent/15 border-accent/80 text-accent"
-                    : "bg-transparent border-border-strong text-muted hover:border-muted hover:text-text"
-                }`}
-              >
-                {hideStudentLoan ? "Liquid (loan hidden)" : "Hide student loan"}
-              </button>
-            )}
+            <DebtToggle
+              hasDebt={hasDebt}
+              hideDebt={hideDebt}
+              onToggle={() => setHideDebt((v) => !v)}
+            />
 
             {/* Timeframe selector */}
             <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-border bg-bg-card p-1">
@@ -342,7 +344,7 @@ export default function ReportsPage() {
                   contentStyle={TOOLTIP_STYLE}
                   formatter={(v: unknown) => [
                     formatGbp(v as number),
-                    hideStudentLoan ? "Liquid Net Worth" : "Net Worth",
+                    hideDebt ? "Liquid Net Worth" : "Net Worth",
                   ]}
                 />
                 <Area
@@ -366,7 +368,7 @@ export default function ReportsPage() {
             <table className="w-full min-w-[520px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-bg-card">
-                  {["Date", hideStudentLoan ? "Liquid NW" : "Net Worth", "MoM Change", "YoY Change"].map((h) => (
+                  {["Date", hideDebt ? "Liquid NW" : "Net Worth", "MoM Change", "YoY Change"].map((h) => (
                     <th
                       key={h}
                       className={`px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted ${
