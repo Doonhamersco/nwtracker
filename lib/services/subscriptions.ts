@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { subscriptions } from "@/db/schema";
 import { listFiles, deleteFile, type FileRow } from "@/lib/services/files";
@@ -139,7 +139,10 @@ export function listSubscriptions(): SubscriptionWithFiles[] {
   const rows = db
     .select()
     .from(subscriptions)
-    .orderBy(desc(subscriptions.createdAt))
+    .orderBy(
+      sql`CASE WHEN ${subscriptions.status} = 'cancelled' THEN 1 ELSE 0 END`,
+      desc(subscriptions.createdAt)
+    )
     .all();
   return rows.map(withFiles);
 }

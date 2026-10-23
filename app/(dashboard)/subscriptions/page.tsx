@@ -80,10 +80,16 @@ export default function SubscriptionsPage() {
   const rows = items.map((item) => item.subscription)
   const activeCount = rows.filter((row) => row.status === "active").length
   const monthlyTotal = activeMonthlyTotal(rows)
-  const visibleItems =
+  const visibleItems = (
     filter === "all"
       ? items
       : items.filter((item) => item.subscription.status === filter)
+  ).slice()
+    .sort((a, b) => {
+      const aCancelled = a.subscription.status === "cancelled" ? 1 : 0
+      const bCancelled = b.subscription.status === "cancelled" ? 1 : 0
+      return aCancelled - bCancelled
+    })
 
   return (
     <div className="flex flex-col gap-6">

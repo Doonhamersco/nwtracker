@@ -155,6 +155,46 @@ describe("listSubscriptions / getSubscriptionById", () => {
   it("returns null for unknown id", () => {
     expect(getSubscriptionById(randomUUID())).toBeNull();
   });
+
+  it("lists cancelled subscriptions after active ones", () => {
+    createSubscription({
+      name: "Old cancelled",
+      costGbp: 1,
+      billingCycle: "monthly",
+      category: "other",
+      status: "cancelled",
+    });
+    createSubscription({
+      name: "Active A",
+      costGbp: 2,
+      billingCycle: "monthly",
+      category: "other",
+    });
+    createSubscription({
+      name: "New cancelled",
+      costGbp: 3,
+      billingCycle: "monthly",
+      category: "other",
+      status: "cancelled",
+    });
+    createSubscription({
+      name: "Active B",
+      costGbp: 4,
+      billingCycle: "monthly",
+      category: "other",
+    });
+
+    const names = listSubscriptions().map((item) => item.subscription.name);
+    const firstCancelled = names.findIndex((name) => name.includes("cancelled"));
+    const lastActive = Math.max(
+      names.lastIndexOf("Active A"),
+      names.lastIndexOf("Active B")
+    );
+
+    expect(firstCancelled).toBeGreaterThan(lastActive);
+    expect(names.slice(0, 2).sort()).toEqual(["Active A", "Active B"]);
+    expect(names.slice(2).sort()).toEqual(["New cancelled", "Old cancelled"]);
+  });
 });
 
 describe("deleteSubscription", () => {
