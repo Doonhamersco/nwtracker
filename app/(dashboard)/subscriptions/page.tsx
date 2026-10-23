@@ -7,6 +7,8 @@ import {
   type SubscriptionWithFiles,
 } from "@/components/subscriptions/SubscriptionCard"
 import { SubscriptionForm } from "@/components/subscriptions/SubscriptionForm"
+import { Card } from "@/components/ui/Card"
+import { Skeleton } from "@/components/ui/Skeleton"
 import { activeMonthlyTotal } from "@/lib/subscriptions-math"
 
 type FormMode = { kind: "create" } | { kind: "edit"; subscriptionId: string }
@@ -16,9 +18,35 @@ function formatGbp(value: number): string {
   return (
     "£" +
     value.toLocaleString("en-GB", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     })
+  )
+}
+
+function OverviewStat({
+  label,
+  value,
+  suffix,
+}: {
+  label: string
+  value: string
+  suffix?: string
+}) {
+  return (
+    <Card className="flex flex-col gap-2">
+      <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted">
+        {label}
+      </span>
+      <p className="flex items-baseline gap-2">
+        <span className="font-display text-5xl font-medium tracking-tight text-text tabular-nums sm:text-6xl">
+          {value}
+        </span>
+        {suffix ? (
+          <span className="text-sm text-muted sm:text-base">{suffix}</span>
+        ) : null}
+      </p>
+    </Card>
   )
 }
 
@@ -94,16 +122,9 @@ export default function SubscriptionsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-medium tracking-tight text-text">
-            Subscriptions
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            {loading
-              ? "Track recurring spend"
-              : `${activeCount} active · ${formatGbp(monthlyTotal)} / month`}
-          </p>
-        </div>
+        <h1 className="font-display text-3xl font-medium tracking-tight text-text">
+          Subscriptions
+        </h1>
         {!formMode && (
           <button
             onClick={() => setFormMode({ kind: "create" })}
@@ -113,6 +134,22 @@ export default function SubscriptionsPage() {
           </button>
         )}
       </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Skeleton className="h-28 rounded-2xl" />
+          <Skeleton className="h-28 rounded-2xl" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <OverviewStat label="Total per month" value={String(activeCount)} />
+          <OverviewStat
+            label="Total cost"
+            value={formatGbp(monthlyTotal)}
+            suffix="/ month"
+          />
+        </div>
+      )}
 
       {formMode && (
         <div ref={formRef} className="rounded-2xl border border-border bg-bg-card p-5">
