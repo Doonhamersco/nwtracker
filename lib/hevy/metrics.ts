@@ -1,3 +1,4 @@
+import { addDays } from "@/lib/training/dates";
 import type { HevyStats, HevyWorkout } from "./types";
 
 export interface HevyMetricDef {
@@ -48,6 +49,40 @@ export function workoutVolumeKg(workout: HevyWorkout): number {
       }, 0)
     );
   }, 0);
+}
+
+/**
+ * Consecutive training days ending today, or yesterday if today has no workout yet.
+ * `capped` means every day in the lookback window had a workout, so the streak may be longer.
+ */
+export function trainingStreakDays(
+  workoutDates: string[],
+  todayISO: string,
+  lookbackDays = 120,
+): { days: number; capped: boolean } {
+  const trained = new Set(workoutDates);
+  let cursor = todayISO;
+  if (!trained.has(cursor)) cursor = addDays(cursor, -1);
+  if (!trained.has(cursor)) return { days: 0, capped: false };
+
+  let days = 0;
+  while (trained.has(cursor) && days < lookbackDays) {
+    days += 1;
+    cursor = addDays(cursor, -1);
+  }
+  return { days, capped: days === lookbackDays };
+}
+
+export function weeklyTrainingTotals(
+  rows: { date: string; volumeKg: number }[],
+  weekStartISO: string,
+  todayISO: string,
+): { volumeKg: number; sessions: number } {
+  const inWeek = rows.filter((row) => row.date >= weekStartISO && row.date <= todayISO);
+  return {
+    sessions: inWeek.length,
+    volumeKg: Math.round(inWeek.reduce((sum, row) => sum + row.volumeKg, 0)),
+  };
 }
 
 /** Rolling 30-day Hevy totals as of a check-in timestamp. */

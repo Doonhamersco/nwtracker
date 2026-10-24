@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { hevyValueForMetric, readingsFromHevyStats, hevyMetricsAsOf } from "@/lib/hevy/metrics";
+import {
+  hevyValueForMetric,
+  readingsFromHevyStats,
+  hevyMetricsAsOf,
+  trainingStreakDays,
+  weeklyTrainingTotals,
+} from "@/lib/hevy/metrics";
 import type { HevyStats } from "@/lib/hevy/types";
 
 const stats: HevyStats = {
@@ -55,6 +61,39 @@ describe("hevyMetricsAsOf", () => {
     const result = hevyMetricsAsOf(workouts, new Date("2026-06-13T13:32:50.920Z"));
     expect(result.sessions).toBe(2);
     expect(result.volumeKg).toBe(1000 + 2000);
+  });
+});
+
+describe("trainingStreakDays", () => {
+  it("counts through today, or from yesterday when today is still open", () => {
+    expect(trainingStreakDays(["2026-10-24", "2026-10-23", "2026-10-22"], "2026-10-24").days).toBe(3);
+    expect(trainingStreakDays(["2026-10-23", "2026-10-22"], "2026-10-24").days).toBe(2);
+    expect(trainingStreakDays(["2026-10-22"], "2026-10-24")).toEqual({ days: 0, capped: false });
+  });
+
+  it("stops at a gap and caps when the whole lookback is full", () => {
+    expect(trainingStreakDays(["2026-10-24", "2026-10-23", "2026-10-21"], "2026-10-24").days).toBe(2);
+    const dates = Array.from({ length: 4 }, (_, i) => {
+      const day = 24 - i;
+      return `2026-10-${String(day).padStart(2, "0")}`;
+    });
+    expect(trainingStreakDays(dates, "2026-10-24", 3)).toEqual({ days: 3, capped: true });
+  });
+});
+
+describe("weeklyTrainingTotals", () => {
+  it("sums this week's volume and sessions, including Monday", () => {
+    const totals = weeklyTrainingTotals(
+      [
+        { date: "2026-10-18", volumeKg: 500 },
+        { date: "2026-10-19", volumeKg: 1000.4 },
+        { date: "2026-10-24", volumeKg: 1000.4 },
+      ],
+      "2026-10-19",
+      "2026-10-24",
+    );
+    expect(totals.sessions).toBe(2);
+    expect(totals.volumeKg).toBe(2001);
   });
 });
 

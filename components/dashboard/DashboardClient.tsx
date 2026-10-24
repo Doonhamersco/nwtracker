@@ -11,6 +11,7 @@ import { CategoryBreakdownBar } from "@/components/dashboard/CategoryBreakdownBa
 import { AssetsTable } from "@/components/dashboard/AssetsTable";
 import { NotableEventsManager } from "@/components/dashboard/NotableEventsManager";
 import { WeightManager, type WeightReading } from "@/components/dashboard/WeightManager";
+import { CardioSection } from "@/components/dashboard/CardioSection";
 
 interface SnapshotSummary {
   id: string;
@@ -204,6 +205,8 @@ export function DashboardClient({
           />
         </div>
       </section>
+
+      <CardioSection />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <section className="flex flex-col rounded-2xl border border-border bg-bg-card p-5 sm:p-6">
