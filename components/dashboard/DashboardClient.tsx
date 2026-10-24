@@ -15,6 +15,7 @@ import { KpiStrip } from "@/components/dashboard/KpiStrip";
 import { useCheckinDueLabel, useDashboardPrefs } from "@/components/dashboard/useDashboardPrefs";
 import { Card } from "@/components/ui/Card";
 import type { AccountMove, SeriesPoint } from "@/lib/dashboard-kpis";
+import { CardioSection } from "@/components/dashboard/CardioSection";
 
 interface SnapshotSummary {
   id: string;
@@ -251,6 +252,8 @@ export function DashboardClient({
           />
         </div>
       </Card>
+
+      <CardioSection />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Card className="flex flex-col">
