@@ -65,7 +65,9 @@ describe("proxy route protection", () => {
   it("redirects unauthenticated users from protected routes", () => {
     expect(proxyDecision({ pathname: "/dashboard", isLoggedIn: false })).toBe("redirect")
     expect(proxyDecision({ pathname: "/assets", isLoggedIn: false })).toBe("redirect")
+    expect(proxyDecision({ pathname: "/fitness", isLoggedIn: false })).toBe("redirect")
     expect(proxyDecision({ pathname: "/spending", isLoggedIn: false })).toBe("redirect")
+    expect(proxyDecision({ pathname: "/metrics", isLoggedIn: false })).toBe("redirect")
     expect(proxyDecision({ pathname: "/api/hevy/stats", isLoggedIn: false })).toBe("redirect")
     expect(proxyDecision({ pathname: "/api/hevy/sync-weights", isLoggedIn: false })).toBe("redirect")
   })

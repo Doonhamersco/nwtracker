@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import HevyWidget from "@/app/components/HevyWidget";
 import { CardioSection } from "@/components/dashboard/CardioSection";
 import { Card } from "@/components/ui/Card";
@@ -55,12 +54,7 @@ export function FitnessClient({
 
       {hevyMetrics.length > 0 && (
         <Card>
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="font-display text-xl font-medium text-text">Hevy check-ins</h2>
-            <Link href="/metrics" className="text-sm text-accent hover:text-accent-hover">
-              Life Metrics →
-            </Link>
-          </div>
+          <h2 className="font-display text-xl font-medium text-text">Hevy check-ins</h2>
           <p className="mt-1 text-sm text-muted">Latest saved readings from the monthly check-in.</p>
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {hevyMetrics.map((metric) => (
