@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGoalById, updateGoal, deleteGoal } from "@/lib/services/goals";
+import { getGoalById, updateGoal, deleteGoal, GoalValidationError } from "@/lib/services/goals";
 import { updateGoalSchema } from "@/lib/validators/goals";
 
 interface RouteParams {
@@ -47,6 +47,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const message = err instanceof Error ? err.message : "Unknown error";
     if (message.includes("not found")) {
       return NextResponse.json({ error: message }, { status: 404 });
+    }
+    if (err instanceof GoalValidationError) {
+      return NextResponse.json({ error: message }, { status: 422 });
     }
     return NextResponse.json({ error: "Failed to update goal", detail: message }, { status: 500 });
   }

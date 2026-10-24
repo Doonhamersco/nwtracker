@@ -7,9 +7,14 @@ export const goalMetricTypeEnum = [
   "NET_WORTH",
   "LIFE_METRIC",
   "ACCOUNT_CATEGORY",
+  "DEBT_PAYOFF",
 ] as const;
 
 export type GoalMetricType = (typeof goalMetricTypeEnum)[number];
+
+export const goalDirectionEnum = ["increase", "decrease"] as const;
+
+export type GoalDirection = (typeof goalDirectionEnum)[number];
 
 export const goals = sqliteTable("goals", {
   id: text("id").primaryKey(),
@@ -25,6 +30,14 @@ export const goals = sqliteTable("goals", {
   ),
   // Set when metricType = ACCOUNT_CATEGORY
   linkedCategory: text("linked_category", { enum: accountCategoryEnum }),
+  // Set when metricType = DEBT_PAYOFF and the goal tracks one liability.
+  // Null means the overview debt total (every LIABILITY account).
+  linkedAccountId: text("linked_account_id"),
+  // increase: done when current >= target. decrease: done when current <= target.
+  // DEBT_PAYOFF is always stored as decrease.
+  direction: text("direction", { enum: goalDirectionEnum })
+    .notNull()
+    .default("increase"),
   // Baseline value at goal creation — progress % computed against this
   baselineValue: real("baseline_value"),
   baselineDate: text("baseline_date"), // ISO date string
