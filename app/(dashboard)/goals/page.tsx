@@ -67,7 +67,7 @@ export default function GoalsPage() {
         <div>
           <h1 className="font-display text-3xl font-medium tracking-tight text-text">Goals</h1>
           <p className="mt-1 text-sm text-muted">
-            Track progress toward your financial targets
+            Track progress toward your life targets
           </p>
         </div>
         {!formMode && (
