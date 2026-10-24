@@ -28,7 +28,7 @@ export function NumberDisplay({
         "tabular-nums",
         isNegative ? "text-negative" : "text-text",
         large
-          ? "whitespace-nowrap font-display font-medium text-5xl sm:text-6xl lg:text-7xl tracking-tight"
+          ? "whitespace-nowrap font-mono font-medium text-4xl tracking-tight sm:text-6xl lg:text-7xl"
           : "font-mono",
         className
       )}

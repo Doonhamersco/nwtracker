@@ -1,9 +1,12 @@
+import { cn } from "@/lib/utils";
+
 interface ChangeIndicatorProps {
   change: number | null;
   percent: number | null;
+  className?: string;
 }
 
-export function ChangeIndicator({ change, percent }: ChangeIndicatorProps) {
+export function ChangeIndicator({ change, percent, className }: ChangeIndicatorProps) {
   if (change === null) return null;
 
   const isPositive = change >= 0;
@@ -22,7 +25,7 @@ export function ChangeIndicator({ change, percent }: ChangeIndicatorProps) {
       : "";
 
   return (
-    <span className={`whitespace-nowrap text-sm font-medium ${color}`}>
+    <span className={cn("whitespace-nowrap text-sm font-medium", color, className)}>
       {arrow} £{formattedChange}
       {percentStr}
     </span>

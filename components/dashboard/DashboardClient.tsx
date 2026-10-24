@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Lock } from "lucide-react";
-import { TimeframeSelector, type Timeframe } from "@/components/dashboard/TimeframeSelector";
+import { TimeframeSelector } from "@/components/dashboard/TimeframeSelector";
 import { DebtToggle } from "@/components/dashboard/DebtToggle";
 import { HeroTotal } from "@/components/dashboard/HeroTotal";
 import { NetWorthChart, type NotableEvent } from "@/components/dashboard/NetWorthChart";
@@ -11,6 +11,10 @@ import { CategoryBreakdownBar } from "@/components/dashboard/CategoryBreakdownBa
 import { AssetsTable } from "@/components/dashboard/AssetsTable";
 import { NotableEventsManager } from "@/components/dashboard/NotableEventsManager";
 import { WeightManager, type WeightReading } from "@/components/dashboard/WeightManager";
+import { KpiStrip } from "@/components/dashboard/KpiStrip";
+import { useCheckinDueLabel, useDashboardPrefs } from "@/components/dashboard/useDashboardPrefs";
+import { Card } from "@/components/ui/Card";
+import type { AccountMove, SeriesPoint } from "@/lib/dashboard-kpis";
 
 interface SnapshotSummary {
   id: string;
@@ -45,19 +49,22 @@ interface DashboardClientProps {
   debtBySnapshot: Record<string, number>;
   initialEvents: NotableEvent[];
   initialWeightReadings: WeightReading[];
+  series?: SeriesPoint[];
+  movesByDate?: Record<string, AccountMove[]>;
+  monthlySubscriptionGbp?: number;
+  activeSubscriptionCount?: number;
 }
 
 function computeNetWorthFromValuations(
   valuations: ValuationRow[],
-  accounts: AccountRow[],
+  accountById: Map<string, AccountRow>,
   hideDebt: boolean
 ): number | null {
   if (valuations.length === 0) return null;
-  const accountMap = new Map(accounts.map((a) => [a.id, a]));
   let total = 0;
   let counted = false;
   for (const v of valuations) {
-    const acc = accountMap.get(v.accountId);
+    const acc = accountById.get(v.accountId);
     if (!acc) continue;
     if (hideDebt && acc.type === "LIABILITY") continue;
     counted = true;
@@ -88,29 +95,47 @@ export function DashboardClient({
   debtBySnapshot,
   initialEvents,
   initialWeightReadings,
+  series = [],
+  movesByDate = {},
+  monthlySubscriptionGbp = 0,
+  activeSubscriptionCount = 0,
 }: DashboardClientProps) {
-  const [timeframe, setTimeframe] = useState<Timeframe>("1Y");
+  const { timeframe, setTimeframe, hideDebt, setHideDebt } = useDashboardPrefs();
   const [events, setEvents] = useState<NotableEvent[]>(initialEvents);
   const [weightReadings, setWeightReadings] = useState<WeightReading[]>(initialWeightReadings);
-  const [hideDebt, setHideDebt] = useState(false);
 
-  const hasDebt = hasOutstandingDebt(accounts, latestValuations);
+  const accountById = useMemo(
+    () => new Map(accounts.map((account) => [account.id, account])),
+    [accounts]
+  );
 
-  const sortedSnapshots = [...initialSnapshots].sort(
-    (a, b) => new Date(b.takenAt).getTime() - new Date(a.takenAt).getTime()
+  const hasDebt = useMemo(
+    () => hasOutstandingDebt(accounts, latestValuations),
+    [accounts, latestValuations]
+  );
+
+  const sortedSnapshots = useMemo(
+    () =>
+      [...initialSnapshots].sort(
+        (a, b) => new Date(b.takenAt).getTime() - new Date(a.takenAt).getTime()
+      ),
+    [initialSnapshots]
   );
 
   const latestSnapshot = sortedSnapshots[0] ?? null;
   const previousSnapshot = sortedSnapshots[1] ?? null;
+  const lastCheckinAt =
+    sortedSnapshots.find((snapshot) => !snapshot.isPartial)?.takenAt ?? null;
+  const dueLabel = useCheckinDueLabel(lastCheckinAt);
 
   const fromValuations = computeNetWorthFromValuations(
     latestValuations,
-    accounts,
+    accountById,
     hideDebt
   );
   const prevFromValuations = computeNetWorthFromValuations(
     previousValuations,
-    accounts,
+    accountById,
     hideDebt
   );
 
@@ -142,19 +167,25 @@ export function DashboardClient({
     ? accounts.filter((a) => a.type !== "LIABILITY")
     : accounts;
 
-  const visibleLatestValuations = hideDebt
-    ? latestValuations.filter((v) => {
-        const acc = accounts.find((a) => a.id === v.accountId);
-        return acc?.type !== "LIABILITY";
-      })
-    : latestValuations;
+  const visibleLatestValuations = useMemo(
+    () =>
+      hideDebt
+        ? latestValuations.filter(
+            (valuation) => accountById.get(valuation.accountId)?.type !== "LIABILITY"
+          )
+        : latestValuations,
+    [hideDebt, latestValuations, accountById]
+  );
 
-  const visiblePreviousValuations = hideDebt
-    ? previousValuations.filter((v) => {
-        const acc = accounts.find((a) => a.id === v.accountId);
-        return acc?.type !== "LIABILITY";
-      })
-    : previousValuations;
+  const visiblePreviousValuations = useMemo(
+    () =>
+      hideDebt
+        ? previousValuations.filter(
+            (valuation) => accountById.get(valuation.accountId)?.type !== "LIABILITY"
+          )
+        : previousValuations,
+    [hideDebt, previousValuations, accountById]
+  );
 
   const accountSummaries = visibleAccounts.map((acc) => {
     const val = visibleLatestValuations.find((v) => v.accountId === acc.id);
@@ -167,7 +198,7 @@ export function DashboardClient({
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <section className="rounded-2xl border border-border bg-bg-card px-5 py-6 sm:px-8 sm:py-8">
+      <Card padding="hero">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <HeroTotal
             netWorthGbp={heroNetWorth}
@@ -180,18 +211,32 @@ export function DashboardClient({
               <DebtToggle
                 hasDebt={hasDebt}
                 hideDebt={hideDebt}
-                onToggle={() => setHideDebt((v) => !v)}
+                onToggle={() => setHideDebt((value) => !value)}
                 compact
               />
               <TimeframeSelector value={timeframe} onChange={setTimeframe} />
             </div>
             <Link
               href="/checkin"
-              className="text-sm text-accent hover:text-accent-hover transition-colors"
+              className="inline-flex flex-wrap items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-bg-base transition-colors hover:bg-accent-hover"
             >
-              Monthly check-in →
+              Monthly check-in
+              {dueLabel && (
+                <span className="rounded-full bg-black/15 px-2 py-0.5 text-[11px] font-medium">
+                  {dueLabel}
+                </span>
+              )}
             </Link>
           </div>
+        </div>
+        <div className="mt-6">
+          <KpiStrip
+            points={series}
+            timeframe={timeframe}
+            hideDebt={hideDebt}
+            monthlySubscriptionGbp={monthlySubscriptionGbp}
+            activeSubscriptionCount={activeSubscriptionCount}
+          />
         </div>
         <div className="mt-8">
           <NetWorthChart
@@ -200,31 +245,36 @@ export function DashboardClient({
             loading={false}
             events={events}
             weightReadings={weightReadings}
+            movesByDate={movesByDate}
+            hideDebt={hideDebt}
             variant="hero"
           />
         </div>
-      </section>
+      </Card>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <section className="flex flex-col rounded-2xl border border-border bg-bg-card p-5 sm:p-6">
+        <Card className="flex flex-col">
           <h2 className="mb-5 font-display text-xl font-medium text-text">Asset mix</h2>
           <CategoryBreakdownBar accounts={accountSummaries} />
-        </section>
+        </Card>
 
-        <section className="flex flex-col rounded-2xl border border-border bg-bg-card p-5 sm:p-6">
+        <Card className="flex flex-col">
           <h2 className="mb-5 font-display text-xl font-medium text-text">Life events</h2>
           <NotableEventsManager events={events} onEventsChange={setEvents} />
-        </section>
+        </Card>
 
-        <section className="flex flex-col rounded-2xl border border-border bg-bg-card p-5 sm:p-6">
+        <Card className="flex flex-col">
           <h2 className="mb-5 font-display text-xl font-medium text-text">Weight</h2>
           <WeightManager readings={weightReadings} onReadingsChange={setWeightReadings} />
-        </section>
+        </Card>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-border bg-bg-card">
+      <Card padding="none" className="overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 sm:px-6">
-          <h2 className="font-display text-xl font-medium text-text">Accounts</h2>
+          <div className="flex items-baseline gap-2">
+            <h2 className="font-display text-xl font-medium text-text">Accounts</h2>
+            <span className="text-xs text-muted">Top 5</span>
+          </div>
           <Link href="/assets" className="text-sm text-accent hover:text-accent-hover">
             View all →
           </Link>
@@ -233,12 +283,13 @@ export function DashboardClient({
           valuations={visibleLatestValuations}
           accounts={visibleAccounts}
           previousValuations={visiblePreviousValuations}
+          limit={5}
         />
-      </section>
+      </Card>
 
       <p className="flex items-center justify-center gap-1.5 pt-2 text-xs text-placeholder">
         <Lock size={11} />
-        All data stays on your machine
+        Stored on your nwTracker server
       </p>
     </div>
   );

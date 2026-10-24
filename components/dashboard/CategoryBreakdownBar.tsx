@@ -15,13 +15,13 @@ interface CategoryBreakdownBarProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  ISA: "#d4b978",
-  CRYPTO: "#a8843e",
-  VEHICLE: "#8a7a5c",
-  PENSION: "#e0c992",
-  PROPERTY: "#9c8a62",
-  STOCKS: "#b8954a",
-  OTHER_ASSET: "#7a6c50",
+  ISA: "#5eead4",
+  CRYPTO: "#38bdf8",
+  VEHICLE: "#94a3b8",
+  PENSION: "#6ee7b7",
+  PROPERTY: "#818cf8",
+  STOCKS: "#7dd3fc",
+  OTHER_ASSET: "#64748b",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -61,7 +61,7 @@ export function CategoryBreakdownBar({ accounts }: CategoryBreakdownBarProps) {
       name: CATEGORY_LABELS[category] ?? category,
       value,
       percent: (value / total) * 100,
-      color: category === "CASH" ? accentColor : (CATEGORY_COLORS[category] ?? "#9c8a62"),
+      color: category === "CASH" ? accentColor : (CATEGORY_COLORS[category] ?? "#64748b"),
     }));
 
   return (

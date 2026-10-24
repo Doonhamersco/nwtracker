@@ -23,6 +23,7 @@ interface AssetsTableProps {
   valuations: ValuationRow[];
   accounts: AccountRow[];
   previousValuations: ValuationRow[];
+  limit?: number;
 }
 
 function formatGbp(value: number): string {
@@ -145,9 +146,23 @@ const TABLE_HEADER = (
   </thead>
 );
 
-export function AssetsTable({ valuations, accounts, previousValuations }: AssetsTableProps) {
-  const assetRows = buildRows(valuations, accounts, previousValuations, "ASSET");
-  const liabilityRows = buildRows(valuations, accounts, previousValuations, "LIABILITY");
+export function AssetsTable({
+  valuations,
+  accounts,
+  previousValuations,
+  limit,
+}: AssetsTableProps) {
+  let assetRows = buildRows(valuations, accounts, previousValuations, "ASSET");
+  let liabilityRows = buildRows(valuations, accounts, previousValuations, "LIABILITY");
+
+  if (limit !== undefined && limit >= 0) {
+    const ranked = [...assetRows, ...liabilityRows]
+      .sort((a, b) => b.valuation.valueGbp - a.valuation.valueGbp)
+      .slice(0, limit);
+    const keep = new Set(ranked.map((row) => row.valuation.id));
+    assetRows = assetRows.filter((row) => keep.has(row.valuation.id));
+    liabilityRows = liabilityRows.filter((row) => keep.has(row.valuation.id));
+  }
 
   if (assetRows.length === 0 && liabilityRows.length === 0) {
     return (

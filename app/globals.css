@@ -6,16 +6,19 @@
   can be recoloured at runtime without baking gold into the stylesheet.
 */
 :root {
-  --nw-bg-base: #0c0b0a;
-  --nw-bg-card: #141210;
-  --nw-bg-hover: #1c1914;
-  --nw-border: #2a261f;
-  --nw-border-strong: #3d372e;
-  --nw-text: #f7f1e6;
-  --nw-muted: #9a8d7a;
-  --nw-placeholder: #6b6156;
-  --nw-positive: #c5a059;
-  --nw-negative: #d47a6a;
+  /* Slate chrome. Gains and losses stay emerald / soft rose.
+     Card, border, muted, and positive are also set from lib/profile-theme.ts
+     so a saved accent still tints the surfaces. Keep those hexes in sync. */
+  --nw-bg-base: #0b1016;
+  --nw-bg-card: #121922;
+  --nw-bg-hover: #1a2431;
+  --nw-border: #243044;
+  --nw-border-strong: #334155;
+  --nw-text: #e8eef6;
+  --nw-muted: #93a4b8;
+  --nw-placeholder: #64748b;
+  --nw-positive: #34d399;
+  --nw-negative: #e7a3ad;
   --nw-accent: #c5a059;
   --nw-accent-hover: #b48d45;
   --nw-weight: #8a9bb0;
