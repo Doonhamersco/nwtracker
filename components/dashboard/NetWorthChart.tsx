@@ -1,21 +1,28 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useId, useState } from "react";
 import {
-  ComposedChart,
   Area,
-  Line,
+  CartesianGrid,
+  ComposedChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
 } from "recharts";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useAccentColor } from "@/components/layout/ProfileProvider";
 import { paletteFromAccent } from "@/lib/profile-theme";
-import type { Timeframe } from "./TimeframeSelector";
+import { timeframeCutoff, type AccountMove, type Timeframe } from "@/lib/dashboard-kpis";
+import { ChartTooltip } from "./chart/ChartTooltip";
+import { clusterEvents } from "./chart/clusterEvents";
+import { EventLabel } from "./chart/EventMarkers";
+import { formatAxisGbp } from "./chart/format";
+import type { ChartDataPoint, NotableEvent, SeriesKey, WeightReading } from "./chart/types";
+import { WeightChart } from "./chart/WeightChart";
+
+export type { NotableEvent, WeightReading };
 
 interface SnapshotSummary {
   id: string;
@@ -25,161 +32,21 @@ interface SnapshotSummary {
   notes: string | null;
 }
 
-export interface NotableEvent {
-  id: string;
-  date: string;
-  emoji: string;
-  label: string;
-}
-
-export interface WeightReading {
-  id: string;
-  date: string;
-  weightKg: number;
-  snapshotId: string;
-}
-
 interface NetWorthChartProps {
   snapshots: SnapshotSummary[];
   timeframe: Timeframe;
   loading: boolean;
   events?: NotableEvent[];
   weightReadings?: WeightReading[];
+  movesByDate?: Record<string, AccountMove[]>;
+  hideDebt?: boolean;
   variant?: "default" | "hero";
 }
 
-// ─── Series config ────────────────────────────────────────────────────────────
-// To add a new series in the future, add an entry here.
-
-const DUSTY_BLUE = "#8a9bb0";
-const IVORY = "#f7f1e6";
-
-type SeriesKey = "netWorth" | "weight";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getTimeframeCutoff(timeframe: Timeframe): Date | null {
-  const now = new Date();
-  switch (timeframe) {
-    case "1M": return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    case "3M": return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-    case "6M": return new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
-    case "1Y": return new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-    case "ALL": return null;
-  }
-}
-
-function formatGbp(value: number): string {
-  if (Math.abs(value) >= 1_000_000) return `£${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `£${(value / 1_000).toFixed(0)}k`;
-  return `£${value.toFixed(0)}`;
-}
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface ChartDataPoint {
-  ts: number;
-  date: string;
-  isoDate: string;
-  value: number | null;
-  prev?: number;
-  weight: number | null;
-}
-
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{ value: number | null; dataKey: string; payload: ChartDataPoint }>;
-  label?: string;
-  visible: Set<SeriesKey>;
-}
-
-function CustomTooltip({ active, payload, label, visible }: CustomTooltipProps) {
-  if (!active || !payload || payload.length === 0) return null;
-  const point = payload[0].payload;
-  const current = point.value;
-  const prev = point.prev;
-  const change = current !== null && prev !== undefined ? current - prev : null;
-  const displayLabel = point.date ?? label;
-
-  return (
-    <div className="bg-bg-card border border-border rounded-xl px-4 py-3">
-      <p className="text-xs text-muted mb-1">{displayLabel}</p>
-      {visible.has("netWorth") && current !== null && (
-        <>
-          <p className="text-base font-bold text-text">
-            {new Intl.NumberFormat("en-GB", {
-              style: "currency",
-              currency: "GBP",
-              maximumFractionDigits: 0,
-            }).format(current)}
-          </p>
-          {change !== null && (
-            <p className={`text-xs mt-0.5 ${change >= 0 ? "text-positive" : "text-negative"}`}>
-              {change >= 0 ? "▲" : "▼"} £
-              {Math.abs(change).toLocaleString("en-GB", { maximumFractionDigits: 0 })}
-            </p>
-          )}
-        </>
-      )}
-      {visible.has("weight") && point.weight !== null && (
-        <p className="text-xs text-weight mt-1 font-mono">{point.weight.toFixed(1)} kg</p>
-      )}
-    </div>
-  );
-}
-
-// ─── Event label ──────────────────────────────────────────────────────────────
-
-interface EventLabelProps {
-  viewBox?: { x?: number; y?: number; height?: number };
-  emoji: string;
-  label: string;
-  eventId: string;
-  activeEventId: string | null;
-  accentColor: string;
-  chrome: { card: string; muted: string; border: string };
-  onEnter: (id: string) => void;
-  onLeave: () => void;
-}
-
-function EventLabel({ viewBox, emoji, label, eventId, activeEventId, accentColor, chrome, onEnter, onLeave }: EventLabelProps) {
-  const x = viewBox?.x ?? 0;
-  const chartHeight = viewBox?.height ?? 0;
-  const isActive = activeEventId === eventId;
-  const markerY = chartHeight - 8;
-  const tooltipWidth = Math.min(label.length * 7 + 24, 200);
-  const tooltipHeight = 36;
-  const tooltipX = x - tooltipWidth / 2;
-  const tooltipY = markerY - tooltipHeight - 8;
-
-  return (
-    <g>
-      <line x1={x} y1={0} x2={x} y2={markerY - 14} stroke={chrome.muted} strokeWidth={1} strokeDasharray="3 3" opacity={0.6} />
-      <circle
-        cx={x} cy={markerY} r={12}
-        fill={chrome.card}
-        stroke={isActive ? accentColor : chrome.border}
-        strokeWidth={1.5}
-        style={{ cursor: "pointer" }}
-        onMouseEnter={() => onEnter(eventId)}
-        onMouseLeave={onLeave}
-      />
-      <text x={x} y={markerY + 4} textAnchor="middle" fontSize={11} style={{ cursor: "pointer", userSelect: "none" }} onMouseEnter={() => onEnter(eventId)} onMouseLeave={onLeave}>
-        {emoji}
-      </text>
-      {isActive && (
-        <g>
-          <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} rx={6} fill={chrome.card} stroke={chrome.border} strokeWidth={1} />
-          <text x={x} y={tooltipY + tooltipHeight / 2 + 5} textAnchor="middle" fontSize={11} fill={IVORY} fontFamily="system-ui, sans-serif">
-            {emoji} {label.length > 22 ? label.slice(0, 22) + "…" : label}
-          </text>
-        </g>
-      )}
-    </g>
-  );
-}
-
-// ─── Main component ───────────────────────────────────────────────────────────
+const WEIGHT_COLOR = "#8a9bb0";
+const LEFT_AXIS = 56;
+const RIGHT_AXIS = 44;
+const SYNC_ID = "nw-dashboard";
 
 export function NetWorthChart({
   snapshots,
@@ -187,78 +54,77 @@ export function NetWorthChart({
   loading,
   events = [],
   weightReadings = [],
+  movesByDate = {},
+  hideDebt = false,
   variant = "default",
 }: NetWorthChartProps) {
   const accentColor = useAccentColor();
   const palette = paletteFromAccent(accentColor);
-  const ESPRESSO = palette.bgCard;
-  const TAUPE = palette.muted;
-  const WARM_BORDER = palette.border;
-  const chrome = { card: ESPRESSO, muted: TAUPE, border: WARM_BORDER };
-  const SERIES = [
-    { key: "netWorth" as const, label: "Net Worth", color: accentColor },
-    { key: "weight" as const, label: "Weight (kg)", color: DUSTY_BLUE },
-  ];
+  const gradientId = useId().replace(/:/g, "");
   const [visible, setVisible] = useState<Set<SeriesKey>>(new Set(["netWorth"]));
-  const [activeEventId, setActiveEventId] = useState<string | null>(null);
+  const [activeClusterId, setActiveClusterId] = useState<string | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
 
-  const handleEnter = useCallback((id: string) => setActiveEventId(id), []);
-  const handleLeave = useCallback(() => setActiveEventId(null), []);
+  const handleEnter = useCallback((id: string) => setActiveClusterId(id), []);
+  const handleLeave = useCallback(() => setActiveClusterId(null), []);
+  const measure = useCallback((node: HTMLDivElement | null) => {
+    if (!node) return;
+    const observer = new ResizeObserver(() => setContainerWidth(node.clientWidth));
+    observer.observe(node);
+    setContainerWidth(node.clientWidth);
+    return () => observer.disconnect();
+  }, []);
 
   function toggleSeries(key: SeriesKey) {
     setVisible((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
 
-  if (loading) return <Skeleton className="w-full h-64" />;
+  if (loading) return <Skeleton className="h-64 w-full" />;
 
-  const cutoff = getTimeframeCutoff(timeframe);
-
+  const cutoff = timeframeCutoff(timeframe);
   const dateMap = new Map<string, { netWorth: number | null; weight: number | null }>();
 
-  // Always collect net worth data (drives the date axis even when hidden)
   const netWorthSnapshots = snapshots
-    .filter((s) => s.netWorthGbp !== null && (!cutoff || new Date(s.takenAt) >= cutoff))
+    .filter((snapshot) => snapshot.netWorthGbp !== null && (!cutoff || new Date(snapshot.takenAt) >= cutoff))
     .sort((a, b) => new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime());
 
-  for (const s of netWorthSnapshots) {
-    const iso = s.takenAt.slice(0, 10);
+  for (const snapshot of netWorthSnapshots) {
+    const iso = snapshot.takenAt.slice(0, 10);
     const existing = dateMap.get(iso) ?? { netWorth: null, weight: null };
-    dateMap.set(iso, { ...existing, netWorth: s.netWorthGbp });
+    dateMap.set(iso, { ...existing, netWorth: snapshot.netWorthGbp });
   }
 
-  // Always collect weight data (so toggling on doesn't require re-fetch)
-  const filteredWeight = weightReadings.filter((w) => !cutoff || new Date(w.date) >= cutoff);
-  for (const w of filteredWeight) {
-    const existing = dateMap.get(w.date) ?? { netWorth: null, weight: null };
-    dateMap.set(w.date, { ...existing, weight: w.weightKg });
+  const filteredWeight = weightReadings.filter((reading) => !cutoff || new Date(reading.date) >= cutoff);
+  for (const reading of filteredWeight) {
+    const existing = dateMap.get(reading.date) ?? { netWorth: null, weight: null };
+    dateMap.set(reading.date, { ...existing, weight: reading.weightKg });
   }
 
   if (dateMap.size === 0) {
     return (
-      <div className="w-full h-64 flex items-center justify-center">
-        <p className="text-muted text-sm">No snapshot data yet</p>
+      <div className="flex h-64 w-full items-center justify-center">
+        <p className="text-sm text-muted">No snapshot data yet</p>
       </div>
     );
   }
 
   const sortedIso = [...dateMap.keys()].sort();
   const manyPoints = sortedIso.length > 12;
-
+  const chartData: ChartDataPoint[] = [];
   let prevNetWorth: number | undefined;
-  const chartData: ChartDataPoint[] = sortedIso.map((iso) => {
+  let prevTs: number | undefined;
+
+  for (const iso of sortedIso) {
     const { netWorth, weight } = dateMap.get(iso)!;
-    const d = new Date(iso + "T12:00:00");
+    const date = new Date(`${iso}T12:00:00`);
     const point: ChartDataPoint = {
-      ts: d.getTime(),
-      date: d.toLocaleDateString("en-GB", {
+      ts: date.getTime(),
+      date: date.toLocaleDateString("en-GB", {
         day: "numeric",
         month: "short",
         year: manyPoints ? "2-digit" : "numeric",
@@ -266,158 +132,203 @@ export function NetWorthChart({
       isoDate: iso,
       value: netWorth,
       prev: prevNetWorth,
+      prevTs,
       weight,
+      moves: movesByDate[iso] ?? [],
     };
-    if (netWorth !== null) prevNetWorth = netWorth;
-    return point;
-  });
+    chartData.push(point);
+    if (netWorth !== null) {
+      prevNetWorth = netWorth;
+      prevTs = point.ts;
+    }
+  }
 
-  const visibleEvents = events.filter((ev) => !cutoff || new Date(ev.date) >= cutoff);
-  const eventReferenceLines = visibleEvents.map((ev) => ({
-    ...ev,
-    xValue: new Date(ev.date + "T12:00:00").getTime(),
-  }));
-
+  const values = chartData.flatMap((point) => (point.value === null ? [] : [point.value]));
+  const minValue = values.length > 0 ? Math.min(...values) : 0;
+  const showZeroLine = minValue <= 0;
   const showNetWorth = visible.has("netWorth");
   const showWeight = visible.has("weight");
-  const hasWeightData = showWeight && chartData.some((d) => d.weight !== null);
-  const netWorthOnRight = showNetWorth && !hasWeightData;
-  const rightMargin = hasWeightData || netWorthOnRight ? 52 : 8;
+  const hasWeightData = showWeight && chartData.some((point) => point.weight !== null);
+  const rightReserve = hasWeightData ? RIGHT_AXIS : 8;
   const isHero = variant === "hero";
+  const domainMin = chartData[0]?.ts ?? 0;
+  const domainMax = chartData[chartData.length - 1]?.ts ?? 0;
+  const plotWidth = Math.max(0, containerWidth - LEFT_AXIS - rightReserve);
+
+  const visibleEvents = events.filter((event) => !cutoff || new Date(event.date) >= cutoff);
+  const clusters = clusterEvents(
+    visibleEvents.map((event) => ({
+      ...event,
+      xValue: new Date(`${event.date}T12:00:00`).getTime(),
+    })),
+    [domainMin, domainMax],
+    plotWidth
+  );
+
+  const series = [
+    { key: "netWorth" as const, label: "Net worth", color: accentColor },
+    { key: "weight" as const, label: "Weight", color: WEIGHT_COLOR },
+  ];
+  const chrome = {
+    card: palette.bgCard,
+    muted: palette.muted,
+    border: palette.border,
+    text: "#e8eef6",
+  };
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        {SERIES.map((s) => {
-          const on = visible.has(s.key);
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {series.map((item) => {
+          const on = visible.has(item.key);
           return (
             <button
-              key={s.key}
-              onClick={() => toggleSeries(s.key)}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              key={item.key}
+              type="button"
+              onClick={() => toggleSeries(item.key)}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 on
                   ? "border"
-                  : "bg-transparent border border-border-strong text-placeholder hover:border-muted hover:text-muted"
+                  : "border border-border-strong bg-transparent text-placeholder hover:border-muted hover:text-muted"
               }`}
               style={
                 on
                   ? {
-                      backgroundColor: `${s.color}18`,
-                      borderColor: `${s.color}80`,
-                      color: s.color,
+                      backgroundColor: `${item.color}18`,
+                      borderColor: `${item.color}80`,
+                      color: item.color,
                     }
                   : undefined
               }
             >
               <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: on ? s.color : "#4B5563" }}
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: on ? item.color : "#64748b" }}
               />
-              {s.label}
+              {item.label}
             </button>
           );
         })}
       </div>
 
-      <div className={`w-full min-w-0 ${isHero ? "h-72 sm:h-80 lg:h-[22rem]" : "h-52 sm:h-64"}`}>
+      <div
+        ref={measure}
+        className={`w-full min-w-0 ${isHero ? "h-72 sm:h-80 lg:h-[22rem]" : "h-52 sm:h-64"}`}
+      >
         <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={chartData} margin={{ top: 8, right: rightMargin, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={accentColor} stopOpacity={0.22} />
-              <stop offset="95%" stopColor={accentColor} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke={WARM_BORDER} vertical={false} />
-          <XAxis
-            dataKey="ts"
-            type="number"
-            scale="time"
-            domain={["dataMin", "dataMax"]}
-            tickFormatter={(ts: number) =>
-              new Date(ts).toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "short",
-                year: manyPoints ? "2-digit" : "numeric",
-              })
-            }
-            tick={{ fill: TAUPE, fontSize: 11 }}
-            axisLine={false}
-            tickLine={false}
-            interval="preserveStartEnd"
-          />
-          <YAxis
-            yAxisId="left"
-            orientation={netWorthOnRight ? "right" : "left"}
-            tickFormatter={formatGbp}
-            tick={{ fill: showNetWorth ? TAUPE : "transparent", fontSize: 11 }}
-            axisLine={false}
-            tickLine={false}
-            width={showNetWorth ? 48 : 1}
-          />
-          {hasWeightData && (
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              tickFormatter={(v: number) => `${v}kg`}
-              tick={{ fill: DUSTY_BLUE, fontSize: 11 }}
+          <ComposedChart
+            data={chartData}
+            syncId={SYNC_ID}
+            margin={{ top: 8, right: rightReserve, left: 0, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={accentColor} stopOpacity={0.55} />
+                <stop offset="50%" stopColor={accentColor} stopOpacity={0.16} />
+                <stop offset="100%" stopColor={accentColor} stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke={palette.border} vertical={false} />
+            <XAxis
+              dataKey="ts"
+              type="number"
+              scale="time"
+              domain={["dataMin", "dataMax"]}
+              tickFormatter={(ts: number) =>
+                new Date(ts).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: manyPoints ? "2-digit" : "numeric",
+                })
+              }
+              tick={{ fill: palette.muted, fontSize: 11 }}
               axisLine={false}
               tickLine={false}
-              width={50}
-              domain={["auto", "auto"]}
+              interval="preserveStartEnd"
             />
-          )}
-          <Tooltip content={<CustomTooltip visible={visible} />} />
-          <Area
-            yAxisId="left"
-            type="monotone"
-            dataKey="value"
-            stroke={showNetWorth ? accentColor : "transparent"}
-            strokeWidth={1.75}
-            fill={showNetWorth ? "url(#netWorthGradient)" : "transparent"}
-            dot={false}
-            activeDot={showNetWorth ? { r: 4, fill: accentColor, stroke: ESPRESSO, strokeWidth: 2 } : false}
-            connectNulls
-          />
-          {hasWeightData && (
-            <Line
-              yAxisId="right"
+            <YAxis
+              yAxisId="left"
+              orientation="left"
+              width={LEFT_AXIS}
+              tickFormatter={formatAxisGbp}
+              tick={{ fill: showNetWorth ? palette.muted : "transparent", fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              content={
+                <ChartTooltip visible={visible} hideDebt={hideDebt} />
+              }
+            />
+            {showZeroLine && (
+              <ReferenceLine
+                y={0}
+                yAxisId="left"
+                stroke={palette.muted}
+                strokeDasharray="4 4"
+                strokeOpacity={0.8}
+                ifOverflow="hidden"
+              />
+            )}
+            <Area
+              yAxisId="left"
               type="monotone"
-              dataKey="weight"
-              stroke={DUSTY_BLUE}
+              dataKey="value"
+              stroke={showNetWorth ? accentColor : "transparent"}
               strokeWidth={2}
-              dot={{ r: 3, fill: DUSTY_BLUE, stroke: ESPRESSO, strokeWidth: 1.5 }}
-              activeDot={{ r: 5, fill: DUSTY_BLUE, stroke: ESPRESSO, strokeWidth: 2 }}
+              fill={showNetWorth ? `url(#${gradientId})` : "transparent"}
+              baseValue={showZeroLine ? 0 : undefined}
+              isAnimationActive={false}
+              dot={false}
+              activeDot={
+                showNetWorth
+                  ? { r: 4, fill: accentColor, stroke: palette.bgCard, strokeWidth: 2 }
+                  : false
+              }
               connectNulls
             />
-          )}
-          {eventReferenceLines.map(
-            (ev) =>
-              ev.xValue && (
-                <ReferenceLine
-                  key={ev.id}
-                  x={ev.xValue}
-                  yAxisId="left"
-                  stroke="transparent"
-                  label={(props) => (
-                    <EventLabel
-                      {...props}
-                      emoji={ev.emoji}
-                      label={ev.label}
-                      eventId={ev.id}
-                      activeEventId={activeEventId}
-                      accentColor={accentColor}
-                      chrome={chrome}
-                      onEnter={handleEnter}
-                      onLeave={handleLeave}
-                    />
-                  )}
-                />
-              )
-          )}
-        </ComposedChart>
+            {clusters.map((cluster) => (
+              <ReferenceLine
+                key={cluster.id}
+                x={cluster.xValue}
+                yAxisId="left"
+                stroke="transparent"
+                ifOverflow="hidden"
+                label={(props: { viewBox?: { x?: number; y?: number; height?: number } }) => (
+                  <EventLabel
+                    viewBox={props.viewBox}
+                    cluster={cluster}
+                    activeClusterId={activeClusterId}
+                    accentColor={accentColor}
+                    chartWidth={containerWidth}
+                    chrome={chrome}
+                    onEnter={handleEnter}
+                    onLeave={handleLeave}
+                  />
+                )}
+              />
+            ))}
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
+
+      {hasWeightData && (
+        <div className="mt-2">
+          <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.16em] text-weight">
+            Weight
+          </p>
+          <div className="h-20 w-full min-w-0">
+            <WeightChart
+              data={chartData}
+              syncId={SYNC_ID}
+              color={WEIGHT_COLOR}
+              axisColor={WEIGHT_COLOR}
+              leftAxis={LEFT_AXIS}
+              rightAxis={RIGHT_AXIS}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

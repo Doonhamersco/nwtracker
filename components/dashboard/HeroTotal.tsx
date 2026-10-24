@@ -40,7 +40,7 @@ export function HeroTotal({
         <span className="font-display text-5xl text-muted">No data yet</span>
       )}
       {change !== null && (
-        <p className={`text-sm ${change >= 0 ? "text-accent" : "text-negative"}`}>
+        <p className={`text-sm ${change >= 0 ? "text-positive" : "text-negative"}`}>
           {change >= 0 ? "+" : "−"}£
           {Math.abs(change).toLocaleString("en-GB", { maximumFractionDigits: 0 })}{" "}
           since last snapshot
