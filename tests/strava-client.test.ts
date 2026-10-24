@@ -177,4 +177,210 @@ describe("createStravaGateway", () => {
     expect(summary.onTrack).toBe("off_track");
     expect(readTokenFile(file)?.refreshToken).toBe("fresh");
   });
+
+  it("ignores a stored token that was derived from a different env refresh token", async () => {
+    const dir = tempDir();
+    dirs.push(dir);
+    const file = path.join(dir, "strava-oauth.json");
+    writeTokenFile(file, {
+      accessToken: "stale",
+      refreshToken: "stored-old",
+      expiresAt: 0,
+      envRefreshToken: "previous-env",
+    });
+
+    const refreshes: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/oauth/token")) {
+        const refresh = new URLSearchParams(String(init?.body)).get("refresh_token") ?? "";
+        refreshes.push(refresh);
+        if (refresh === "env-refresh") {
+          return Response.json({
+            access_token: "access-env",
+            refresh_token: "rotated-env",
+            expires_at: 2_000_000_000,
+          });
+        }
+        return new Response("old token", { status: 200 });
+      }
+      if (url.includes("/athlete/activities")) return Response.json([]);
+      return new Response("missing", { status: 404 });
+    };
+
+    const gateway = createStravaGateway({
+      tokenPath: file,
+      readEnv: () => ENV,
+      fetchImpl,
+      now: () => new Date("2026-10-24T12:00:00Z"),
+    });
+
+    await gateway.getSummary();
+    expect(refreshes).toEqual(["env-refresh"]);
+    expect(readTokenFile(file)).toMatchObject({
+      refreshToken: "rotated-env",
+      envRefreshToken: "env-refresh",
+    });
+  });
+
+  it("keeps the rotated token when it was derived from the current env token", async () => {
+    const dir = tempDir();
+    dirs.push(dir);
+    const file = path.join(dir, "strava-oauth.json");
+    writeTokenFile(file, {
+      accessToken: "stale",
+      refreshToken: "stored-rotated",
+      expiresAt: 0,
+      envRefreshToken: "env-refresh",
+    });
+
+    const refreshes: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/oauth/token")) {
+        const refresh = new URLSearchParams(String(init?.body)).get("refresh_token") ?? "";
+        refreshes.push(refresh);
+        return Response.json({
+          access_token: "access-kept",
+          refresh_token: "stored-rotated-2",
+          expires_at: 2_000_000_000,
+        });
+      }
+      if (url.includes("/athlete/activities")) return Response.json([]);
+      return new Response("missing", { status: 404 });
+    };
+
+    const gateway = createStravaGateway({
+      tokenPath: file,
+      readEnv: () => ENV,
+      fetchImpl,
+      now: () => new Date("2026-10-24T12:00:00Z"),
+    });
+
+    await gateway.getSummary();
+    expect(refreshes).toEqual(["stored-rotated"]);
+  });
+
+  it("drops stored tokens after an API 401 and retries once with the env token", async () => {
+    const dir = tempDir();
+    dirs.push(dir);
+    const file = path.join(dir, "strava-oauth.json");
+    writeTokenFile(file, { accessToken: "stale", refreshToken: "stored-refresh", expiresAt: 0 });
+
+    const refreshes: string[] = [];
+    const auths: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/oauth/token")) {
+        const refresh = new URLSearchParams(String(init?.body)).get("refresh_token") ?? "";
+        refreshes.push(refresh);
+        if (refresh === "stored-refresh") {
+          return Response.json({
+            access_token: "access-old",
+            refresh_token: "rotated-old",
+            expires_at: 2_000_000_000,
+          });
+        }
+        if (refresh === "env-refresh") {
+          return Response.json({
+            access_token: "access-new",
+            refresh_token: "rotated-env",
+            expires_at: 2_000_000_000,
+          });
+        }
+        return new Response("no", { status: 400 });
+      }
+      if (url.includes("/athlete/activities")) {
+        const auth = new Headers(init?.headers).get("authorization") ?? "";
+        auths.push(auth);
+        if (auth === "Bearer access-old") return new Response("scope", { status: 401 });
+        return Response.json([]);
+      }
+      return new Response("missing", { status: 404 });
+    };
+
+    const gateway = createStravaGateway({
+      tokenPath: file,
+      readEnv: () => ENV,
+      fetchImpl,
+      now: () => new Date("2026-10-24T12:00:00Z"),
+    });
+
+    const summary = await gateway.getSummary();
+    expect(summary.recentRuns).toEqual([]);
+    expect(refreshes).toEqual(["stored-refresh", "env-refresh"]);
+    expect(auths).toEqual(["Bearer access-old", "Bearer access-new"]);
+    expect(readTokenFile(file)?.refreshToken).toBe("rotated-env");
+    expect(readTokenFile(file)?.envRefreshToken).toBe("env-refresh");
+  });
+
+  it("does not retry a second time when the env token is also rejected", async () => {
+    const dir = tempDir();
+    dirs.push(dir);
+    const file = path.join(dir, "strava-oauth.json");
+    writeTokenFile(file, { accessToken: "stale", refreshToken: "stored-refresh", expiresAt: 0 });
+
+    let activityCalls = 0;
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/oauth/token")) {
+        const refresh = new URLSearchParams(String(init?.body)).get("refresh_token");
+        return Response.json({
+          access_token: refresh === "env-refresh" ? "access-env" : "access-old",
+          refresh_token: "rotated",
+          expires_at: 2_000_000_000,
+        });
+      }
+      if (url.includes("/athlete/activities")) {
+        activityCalls += 1;
+        return new Response("no", { status: 401 });
+      }
+      return new Response("missing", { status: 404 });
+    };
+
+    const gateway = createStravaGateway({
+      tokenPath: file,
+      readEnv: () => ENV,
+      fetchImpl,
+      now: () => new Date("2026-10-24T12:00:00Z"),
+    });
+
+    await expect(gateway.getSummary()).rejects.toMatchObject({ status: 401 });
+    expect(activityCalls).toBe(2);
+  });
+
+  it("stops using an in-memory access token after the env refresh token changes", async () => {
+    const dir = tempDir();
+    dirs.push(dir);
+    const file = path.join(dir, "strava-oauth.json");
+    let refreshToken = "env-refresh";
+    const refreshes: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/oauth/token")) {
+        const refresh = new URLSearchParams(String(init?.body)).get("refresh_token") ?? "";
+        refreshes.push(refresh);
+        return Response.json({
+          access_token: `access-${refresh}`,
+          refresh_token: `rotated-${refresh}`,
+          expires_at: 2_000_000_000,
+        });
+      }
+      if (url.includes("/athlete/activities")) return Response.json([]);
+      return new Response("missing", { status: 404 });
+    };
+
+    const gateway = createStravaGateway({
+      tokenPath: file,
+      readEnv: () => ({ ...ENV, refreshToken }),
+      fetchImpl,
+      now: () => new Date("2026-10-24T12:00:00Z"),
+      cacheMs: 0,
+    });
+
+    await gateway.getSummary();
+    refreshToken = "replacement-env";
+    await gateway.getSummary();
+    expect(refreshes).toEqual(["env-refresh", "replacement-env"]);
+  });
 });
