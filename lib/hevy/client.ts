@@ -1,3 +1,5 @@
+import { londonToday, weekStart } from "@/lib/training/dates";
+import { trainingStreakDays, weeklyTrainingTotals, workoutVolumeKg } from "./metrics";
 import type {
   BodyMeasurementsResponse,
   ExerciseHistoryResponse,
@@ -224,6 +226,38 @@ export const hevyClient = {
     }
 
     return all;
+  },
+
+  /**
+   * Current training streak and this week's volume.
+   * Looks back far enough that a long daily streak is not cut off early.
+   */
+  async getTrainingSnapshot(now = new Date()): Promise<{
+    streakDays: number;
+    streakCapped: boolean;
+    weeklyVolumeKg: number;
+    workoutsThisWeek: number;
+  }> {
+    const lookbackDays = 120;
+    const today = londonToday(now);
+    const oldest = new Date(now.getTime() - (lookbackDays + 1) * 24 * 60 * 60 * 1000);
+    const workouts = await fetchWorkoutsUntil(oldest);
+    const rows = workouts.map((workout) => ({
+      date: londonToday(new Date(workout.start_time)),
+      volumeKg: workoutVolumeKg(workout),
+    }));
+    const streak = trainingStreakDays(
+      rows.map((row) => row.date),
+      today,
+      lookbackDays,
+    );
+    const week = weeklyTrainingTotals(rows, weekStart(today), today);
+    return {
+      streakDays: streak.days,
+      streakCapped: streak.capped,
+      weeklyVolumeKg: week.volumeKg,
+      workoutsThisWeek: week.sessions,
+    };
   },
 
   /**

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/Card";
 import type { HevyStats } from "@/lib/hevy/types";
 
 const GYM_SESSION_GOAL = 12;
@@ -58,15 +59,16 @@ function StatPill({
 
 // ─── Main widget ──────────────────────────────────────────────────────────────
 
-type Status = "idle" | "loading" | "ok" | "error";
+type Status = "loading" | "ok" | "error";
 
-export default function HevyWidget() {
-  const [stats, setStats] = useState<HevyStats | null>(null);
-  const [status, setStatus] = useState<Status>("idle");
+export default function HevyWidget({ initial }: { initial?: HevyStats }) {
+  const [stats, setStats] = useState<HevyStats | null>(initial ?? null);
+  const [status, setStatus] = useState<Status>(initial ? "ok" : "loading");
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    setStatus("loading");
+    if (initial) return;
+    let cancelled = false;
     fetch("/api/hevy/stats")
       .then(async (res) => {
         const json = await res.json();
@@ -74,17 +76,22 @@ export default function HevyWidget() {
         return json as HevyStats;
       })
       .then((data) => {
+        if (cancelled) return;
         setStats(data);
         setStatus("ok");
       })
       .catch((err: unknown) => {
+        if (cancelled) return;
         setErrorMsg(err instanceof Error ? err.message : "Unknown error");
         setStatus("error");
       });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [initial]);
 
   return (
-    <div className="rounded-2xl bg-bg-card border border-border p-5 flex flex-col gap-4">
+    <Card className="flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -170,6 +177,6 @@ export default function HevyWidget() {
           <div className="h-16 rounded bg-border" />
         </div>
       )}
-    </div>
+    </Card>
   );
 }

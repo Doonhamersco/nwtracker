@@ -20,6 +20,7 @@ interface AccountRow {
 }
 
 type HevyStatus = "loading" | "connected" | "error" | "unconfigured"
+type StravaStatus = "loading" | "connected" | "error" | "unconfigured"
 
 type TabId = "profile" | "accounts" | "api" | "export" | "about"
 
@@ -51,6 +52,7 @@ function SettingsPageInner() {
   const [accountsLoading, setAccountsLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [hevyStatus, setHevyStatus] = useState<HevyStatus>("loading")
+  const [stravaStatus, setStravaStatus] = useState<StravaStatus>("loading")
   const [activeTab, setActiveTab] = useState<TabId>(isTabId(tabParam) ? tabParam : "profile")
 
   async function fetchAccounts() {
@@ -82,6 +84,28 @@ function SettingsPageInner() {
       }
     } catch {
       setHevyStatus("error")
+    }
+  }
+
+  async function checkStravaStatus() {
+    try {
+      const res = await fetch("/api/training")
+      if (!res.ok) {
+        setStravaStatus("error")
+        return
+      }
+      const data = (await res.json()) as {
+        strava?: { configured?: boolean; error?: string }
+      }
+      if (!data.strava?.configured) {
+        setStravaStatus("unconfigured")
+      } else if (data.strava.error) {
+        setStravaStatus("error")
+      } else {
+        setStravaStatus("connected")
+      }
+    } catch {
+      setStravaStatus("error")
     }
   }
 
@@ -118,6 +142,7 @@ function SettingsPageInner() {
   useEffect(() => {
     void fetchAccounts()
     void checkHevyStatus()
+    void checkStravaStatus()
   }, [])
 
   useEffect(() => {
@@ -332,6 +357,52 @@ function SettingsPageInner() {
                 API keys are stored as environment variables and cannot be edited from the UI.
                 Update <code className="rounded bg-border px-1 py-0.5 text-text">.env.local</code> and
                 restart the server to change them.
+              </p>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-medium text-text">Strava</h3>
+                  <p className="mt-1 text-sm text-muted">
+                    Recent runs, weekly distance, and pace for the November fitness test.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {stravaStatus === "loading" && (
+                    <span className="text-xs text-muted animate-pulse">Checking…</span>
+                  )}
+                  {stravaStatus === "connected" && (
+                    <span className="rounded-full bg-positive/20 px-2.5 py-1 text-xs font-medium text-positive">
+                      ✓ Connected
+                    </span>
+                  )}
+                  {stravaStatus === "unconfigured" && (
+                    <span className="rounded-full bg-muted/20 px-2.5 py-1 text-xs font-medium text-muted">
+                      Not configured
+                    </span>
+                  )}
+                  {stravaStatus === "error" && (
+                    <span className="rounded-full bg-negative/20 px-2.5 py-1 text-xs font-medium text-negative">
+                      Error
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-bg-base px-3 py-2">
+                <code className="text-xs text-muted">
+                  STRAVA_CLIENT_ID=•••• · STRAVA_CLIENT_SECRET=•••• · STRAVA_REFRESH_TOKEN=••••
+                </code>
+              </div>
+              <p className="text-xs text-muted">
+                Scope must be activity:read_all. The server refreshes access tokens and stores the
+                latest refresh token on the data volume. Set the three values in{" "}
+                <code className="rounded bg-border px-1 py-0.5 text-text">.env.local</code> locally,
+                or with <code className="rounded bg-border px-1 py-0.5 text-text">fly secrets set</code> in
+                production.
               </p>
             </div>
           </Card>
