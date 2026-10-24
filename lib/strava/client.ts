@@ -26,6 +26,12 @@ export interface TokenSet {
   refreshToken: string;
   /** Unix seconds. */
   expiresAt: number;
+  /**
+   * STRAVA_REFRESH_TOKEN this file was derived from.
+   * A rotated Strava refresh token stays in `refreshToken`; this field records
+   * which env value produced it. When the env token changes, the file is ignored.
+   */
+  envRefreshToken?: string;
 }
 
 export interface StravaEnv {
@@ -72,6 +78,7 @@ export function readTokenFile(filePath: string): TokenSet | null {
       accessToken: raw.accessToken,
       refreshToken: raw.refreshToken,
       expiresAt: typeof raw.expiresAt === "number" ? raw.expiresAt : 0,
+      ...(typeof raw.envRefreshToken === "string" ? { envRefreshToken: raw.envRefreshToken } : {}),
     };
   } catch {
     return null;
@@ -180,6 +187,10 @@ export function createStravaGateway(deps: GatewayDeps): StravaGateway {
     };
   }
 
+  function stamp(tokens: TokenSet, env: StravaEnv): TokenSet {
+    return { ...tokens, envRefreshToken: env.refreshToken };
+  }
+
   function persist(tokens: TokenSet) {
     memory = tokens;
     try {
@@ -189,17 +200,36 @@ export function createStravaGateway(deps: GatewayDeps): StravaGateway {
     }
   }
 
+  function discardTokens() {
+    memory = null;
+    cache = null;
+    try {
+      fs.unlinkSync(deps.tokenPath);
+    } catch {
+      // The file may already be missing. The next refresh uses the env token.
+    }
+  }
+
+  /** Stored tokens are only reusable when they were minted from the current env token. */
+  function usableStored(env: StravaEnv): TokenSet | null {
+    const stored = readTokenFile(deps.tokenPath);
+    if (!stored) return null;
+    if (stored.envRefreshToken == null) return stored;
+    if (stored.envRefreshToken !== env.refreshToken) return null;
+    return stored;
+  }
+
   async function refresh(): Promise<TokenSet> {
     const env = deps.readEnv();
-    const stored = readTokenFile(deps.tokenPath);
+    const stored = usableStored(env);
     const primary = stored?.refreshToken || env.refreshToken;
     try {
-      const tokens = await postToken(primary, env);
+      const tokens = stamp(await postToken(primary, env), env);
       persist(tokens);
       return tokens;
     } catch (err) {
       if (stored && stored.refreshToken !== env.refreshToken && env.refreshToken) {
-        const tokens = await postToken(env.refreshToken, env);
+        const tokens = stamp(await postToken(env.refreshToken, env), env);
         persist(tokens);
         return tokens;
       }
@@ -208,8 +238,15 @@ export function createStravaGateway(deps: GatewayDeps): StravaGateway {
   }
 
   async function accessToken(): Promise<string> {
+    const env = deps.readEnv();
     const nowSec = Math.floor(now().getTime() / 1000);
-    if (memory && memory.expiresAt - nowSec > REFRESH_LEEWAY_SECONDS) return memory.accessToken;
+    if (
+      memory &&
+      memory.envRefreshToken === env.refreshToken &&
+      memory.expiresAt - nowSec > REFRESH_LEEWAY_SECONDS
+    ) {
+      return memory.accessToken;
+    }
     if (!refreshing) {
       refreshing = refresh().finally(() => {
         refreshing = null;
@@ -244,8 +281,7 @@ export function createStravaGateway(deps: GatewayDeps): StravaGateway {
     return all;
   }
 
-  async function compute(): Promise<CardioSummary> {
-    const token = await accessToken();
+  async function loadSummary(token: string): Promise<CardioSummary> {
     const current = now();
     const after = Math.floor(current.getTime() / 1000) - 180 * 24 * 60 * 60;
     const listed = await listActivities(token, after);
@@ -271,6 +307,18 @@ export function createStravaGateway(deps: GatewayDeps): StravaGateway {
     const summary = summarizeCardio(runs, current);
     cache = { at: current.getTime(), summary };
     return summary;
+  }
+
+  async function compute(): Promise<CardioSummary> {
+    try {
+      return await loadSummary(await accessToken());
+    } catch (err) {
+      if (!(err instanceof StravaApiError) || err.status !== 401) throw err;
+    }
+    // The stored access token was rejected. Drop it and try the env refresh token once.
+    discardTokens();
+    const tokens = await refresh();
+    return loadSummary(tokens.accessToken);
   }
 
   return {
