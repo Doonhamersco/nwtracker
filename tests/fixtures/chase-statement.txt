@@ -1,0 +1,34 @@
+Chase UK
+Statement
+
+1 September 2026 to 30 September 2026
+
+Account name
+Alex Example
+
+Opening balance
+£1,000.00
+Money in
+£250.00
+Money out
+£46.50
+Closing balance
+£1,203.50
+
+Date Description Amount Balance
+01 Sep 2026 NORTHWIND GROCERS -£18.40 £981.60
+Purchase
+02 Sep 2026 EXAMPLE PAYROLL +£250.00 £1,231.60
+Payment
+03 Sep 2026 CITY TRANSIT -£12.10 £1,219.50
+Purchase
+04 Sep 2026 HARBOUR
+CAFE
+Purchase
+EUR 14.00 @ 0.8500
+-£11.90 £1,207.60
+05 Sep 2026 Round up -£0.10 £1,207.50
+Transfer
+06 Sep 2026 RIVER BOOKS
+Purchase
+-£4.00 £1,203.50
