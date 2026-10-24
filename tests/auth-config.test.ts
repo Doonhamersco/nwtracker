@@ -76,7 +76,7 @@ describe("middleware route protection logic", () => {
   it("redirects unauthenticated users from protected routes", () => {
     expect(shouldRedirectToLogin("/dashboard", false)).toBe(true)
     expect(shouldRedirectToLogin("/assets", false)).toBe(true)
-    expect(shouldRedirectToLogin("/metrics", false)).toBe(true)
+    expect(shouldRedirectToLogin("/fitness", false)).toBe(true)
   })
 
   it("does not redirect authenticated users from protected routes", () => {
