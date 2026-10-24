@@ -5,6 +5,8 @@ import {
   computeNetWorthFromInputs,
   computeMoMChange,
   computeSavingsRate,
+  findLatestCommittedSnapshot,
+  physicalAssetsInDisplayedWorth,
   projectGoalCompletion,
   withCurrentPhysicalAssets,
 } from "@/lib/engine/net-worth";
@@ -149,6 +151,17 @@ describe("withCurrentPhysicalAssets", () => {
     const points = withCurrentPhysicalAssets([older, latest, partial], 1500);
     expect(points[1].netWorthGbp).toBeCloseTo(10500);
     expect(points[2].netWorthGbp).toBe(11000);
+  });
+
+  it("reports the physical portion currently inside each displayed point", () => {
+    const points = withCurrentPhysicalAssets([older, latest], 1500);
+    const latestId = findLatestCommittedSnapshot(points)?.id ?? null;
+    expect(latestId).toBe("new");
+    expect(physicalAssetsInDisplayedWorth(points[1], latestId, 1500)).toBe(1500);
+    expect(points[1].netWorthGbp! - physicalAssetsInDisplayedWorth(points[1], latestId, 1500)).toBeCloseTo(
+      9000
+    );
+    expect(physicalAssetsInDisplayedWorth(points[0], latestId, 1500)).toBe(0);
   });
 });
 

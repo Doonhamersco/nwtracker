@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Lock } from "lucide-react";
 import { TimeframeSelector } from "@/components/dashboard/TimeframeSelector";
 import { DebtToggle } from "@/components/dashboard/DebtToggle";
+import { HideAssetsToggle } from "@/components/dashboard/HideAssetsToggle";
 import { HeroTotal } from "@/components/dashboard/HeroTotal";
 import { NetWorthChart, type NotableEvent } from "@/components/dashboard/NetWorthChart";
 import { CategoryBreakdownBar } from "@/components/dashboard/CategoryBreakdownBar";
@@ -16,11 +17,16 @@ import { KpiStrip } from "@/components/dashboard/KpiStrip";
 import { useCheckinDueLabel, useDashboardPrefs } from "@/components/dashboard/useDashboardPrefs";
 import { Card } from "@/components/ui/Card";
 import type { AccountMove, SeriesPoint } from "@/lib/dashboard-kpis";
+import {
+  findLatestCommittedSnapshot,
+  physicalAssetsInDisplayedWorth,
+} from "@/lib/engine/net-worth";
 
 interface SnapshotSummary {
   id: string;
   takenAt: string;
   netWorthGbp: number | null;
+  physicalAssetsGbp?: number | null;
   isPartial: boolean;
   notes: string | null;
 }
@@ -112,7 +118,8 @@ export function DashboardClient({
   previousPhysicalAssetsGbp = 0,
   physicalHoldings = [],
 }: DashboardClientProps) {
-  const { timeframe, setTimeframe, hideDebt, setHideDebt } = useDashboardPrefs();
+  const { timeframe, setTimeframe, hideDebt, setHideDebt, hideAssets, setHideAssets } =
+    useDashboardPrefs();
   const [events, setEvents] = useState<NotableEvent[]>(initialEvents);
 
   const accountById = useMemo(
@@ -135,6 +142,10 @@ export function DashboardClient({
 
   const latestSnapshot = sortedSnapshots[0] ?? null;
   const previousSnapshot = sortedSnapshots[1] ?? null;
+  const latestCommittedId = useMemo(
+    () => findLatestCommittedSnapshot(initialSnapshots)?.id ?? null,
+    [initialSnapshots]
+  );
   const lastCheckinAt =
     sortedSnapshots.find((snapshot) => !snapshot.isPartial)?.takenAt ?? null;
   const dueLabel = useCheckinDueLabel(lastCheckinAt);
@@ -152,29 +163,39 @@ export function DashboardClient({
 
   const heroNetWorth =
     fromValuations !== null
-      ? fromValuations + physicalAssetsGbp
-      : latestSnapshot?.netWorthGbp !== null && latestSnapshot?.netWorthGbp !== undefined
-        ? latestSnapshot.netWorthGbp +
-          (hideDebt ? (debtBySnapshot[latestSnapshot.id] ?? 0) : 0)
-        : null;
+      ? fromValuations + (hideAssets ? 0 : physicalAssetsGbp)
+      : adjustSnapshotWorth(latestSnapshot, hideDebt, hideAssets);
 
   const heroPrevious =
     prevFromValuations !== null
-      ? prevFromValuations + previousPhysicalAssetsGbp
-      : previousSnapshot?.netWorthGbp !== null && previousSnapshot?.netWorthGbp !== undefined
-        ? previousSnapshot.netWorthGbp +
-          (hideDebt ? (debtBySnapshot[previousSnapshot.id] ?? 0) : 0)
-        : null;
+      ? prevFromValuations + (hideAssets ? 0 : previousPhysicalAssetsGbp)
+      : adjustSnapshotWorth(previousSnapshot, hideDebt, hideAssets);
 
-  const chartSnapshots = hideDebt
-    ? initialSnapshots.map((s) => ({
-        ...s,
-        netWorthGbp:
-          s.netWorthGbp !== null
-            ? s.netWorthGbp + (debtBySnapshot[s.id] ?? 0)
-            : null,
-      }))
-    : initialSnapshots;
+  function adjustSnapshotWorth(
+    snapshot: SnapshotSummary | null,
+    hideDebtNow: boolean,
+    hideAssetsNow: boolean
+  ): number | null {
+    if (!snapshot || snapshot.netWorthGbp === null) return null;
+    let value = snapshot.netWorthGbp;
+    if (hideDebtNow) value += debtBySnapshot[snapshot.id] ?? 0;
+    if (hideAssetsNow) {
+      value -= physicalAssetsInDisplayedWorth(
+        snapshot,
+        latestCommittedId,
+        physicalAssetsGbp
+      );
+    }
+    return value;
+  }
+
+  const chartSnapshots =
+    hideDebt || hideAssets
+      ? initialSnapshots.map((snapshot) => ({
+          ...snapshot,
+          netWorthGbp: adjustSnapshotWorth(snapshot, hideDebt, hideAssets),
+        }))
+      : initialSnapshots;
 
   const visibleAccounts = hideDebt
     ? accounts.filter((a) => a.type !== "LIABILITY")
@@ -216,11 +237,13 @@ export function DashboardClient({
         accountType: acc.type as "ASSET" | "LIABILITY",
       };
     }),
-    ...physicalHoldings.map((asset) => ({
-      category: MIX_CATEGORY[asset.category] ?? "OTHER_ASSET",
-      valueGbp: asset.valueGbp,
-      accountType: "ASSET" as const,
-    })),
+    ...(hideAssets
+      ? []
+      : physicalHoldings.map((asset) => ({
+          category: MIX_CATEGORY[asset.category] ?? "OTHER_ASSET",
+          valueGbp: asset.valueGbp,
+          accountType: "ASSET" as const,
+        }))),
   ];
 
   return (
@@ -239,6 +262,11 @@ export function DashboardClient({
                 hasDebt={hasDebt}
                 hideDebt={hideDebt}
                 onToggle={() => setHideDebt((value) => !value)}
+                compact
+              />
+              <HideAssetsToggle
+                hideAssets={hideAssets}
+                onToggle={() => setHideAssets((value) => !value)}
                 compact
               />
               <TimeframeSelector value={timeframe} onChange={setTimeframe} />
@@ -261,6 +289,7 @@ export function DashboardClient({
             points={series}
             timeframe={timeframe}
             hideDebt={hideDebt}
+            hideAssets={hideAssets}
             monthlySubscriptionGbp={monthlySubscriptionGbp}
             activeSubscriptionCount={activeSubscriptionCount}
           />

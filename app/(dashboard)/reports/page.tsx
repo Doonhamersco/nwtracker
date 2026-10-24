@@ -17,9 +17,15 @@ import {
 } from "recharts"
 import { Card } from "@/components/ui/Card"
 import { DebtToggle } from "@/components/dashboard/DebtToggle"
+import { HideAssetsToggle } from "@/components/dashboard/HideAssetsToggle"
+import { useDashboardPrefs } from "@/components/dashboard/useDashboardPrefs"
 import { useAccentColor } from "@/components/layout/ProfileProvider"
 import { paletteFromAccent } from "@/lib/profile-theme"
-import { withCurrentPhysicalAssets } from "@/lib/engine/net-worth"
+import {
+  findLatestCommittedSnapshot,
+  physicalAssetsInDisplayedWorth,
+  withCurrentPhysicalAssets,
+} from "@/lib/engine/net-worth"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -98,6 +104,8 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null)
   const [timeframe, setTimeframe] = useState<Timeframe>("1Y")
   const [hideDebt, setHideDebt] = useState(false)
+  const { hideAssets, setHideAssets } = useDashboardPrefs()
+  const [physicalTotal, setPhysicalTotal] = useState(0)
 
   useEffect(() => {
     async function load() {
@@ -109,13 +117,14 @@ export default function ReportsPage() {
         ])
         if (!snapRes.ok) throw new Error("Failed to load snapshots")
         const all = (await snapRes.json()) as SnapshotSummary[]
-        let physicalTotal = 0
+        let currentPhysical = 0
         if (assetsRes.ok) {
           const assets = (await assetsRes.json()) as { totalGbp?: number }
-          physicalTotal = assets.totalGbp ?? 0
+          currentPhysical = assets.totalGbp ?? 0
         }
+        setPhysicalTotal(currentPhysical)
         // Oldest first for charts. Only the latest committed point picks up today's asset total.
-        const sorted = withCurrentPhysicalAssets([...all].reverse(), physicalTotal)
+        const sorted = withCurrentPhysicalAssets([...all].reverse(), currentPhysical)
         setSnapshots(sorted)
 
         if (accountsRes.ok) {
@@ -171,6 +180,23 @@ export default function ReportsPage() {
     )
   }, [debtIds, snapshots, details])
 
+  const latestCommittedId = useMemo(
+    () => findLatestCommittedSnapshot(snapshots)?.id ?? null,
+    [snapshots]
+  )
+
+  const displayedWorth = useMemo(() => {
+    return (snapshot: SnapshotSummary): number | null => {
+      if (snapshot.netWorthGbp === null) return null
+      let value = snapshot.netWorthGbp
+      if (hideDebt) value += debtBySnapshot[snapshot.id] ?? 0
+      if (hideAssets) {
+        value -= physicalAssetsInDisplayedWorth(snapshot, latestCommittedId, physicalTotal)
+      }
+      return value
+    }
+  }, [hideDebt, hideAssets, debtBySnapshot, latestCommittedId, physicalTotal])
+
   // Filter snapshots by timeframe
   const filteredSnapshots = useMemo(() => {
     const cutoff = cutoffDate(timeframe)
@@ -182,23 +208,19 @@ export default function ReportsPage() {
   const nwChartData = useMemo(() => {
     return filteredSnapshots
       .map((s) => {
-        if (s.netWorthGbp === null) return null
-        const value = hideDebt
-          ? s.netWorthGbp + (debtBySnapshot[s.id] ?? 0)
-          : s.netWorthGbp
+        const value = displayedWorth(s)
+        if (value === null) return null
         return { date: formatDate(s.takenAt, true), value }
       })
       .filter((row): row is { date: string; value: number } => row !== null)
-  }, [filteredSnapshots, hideDebt, debtBySnapshot])
+  }, [filteredSnapshots, displayedWorth])
 
   // MoM and YoY change table
   const nwTableData = useMemo(() => {
     const rows = filteredSnapshots
       .map((s) => {
-        if (s.netWorthGbp === null) return null
-        const netWorth = hideDebt
-          ? s.netWorthGbp + (debtBySnapshot[s.id] ?? 0)
-          : s.netWorthGbp
+        const netWorth = displayedWorth(s)
+        if (netWorth === null) return null
         return { s, netWorth }
       })
       .filter((row): row is { s: SnapshotSummary; netWorth: number } => row !== null)
@@ -216,7 +238,7 @@ export default function ReportsPage() {
         }
       })
       .reverse() // newest first in table
-  }, [filteredSnapshots, hideDebt, debtBySnapshot])
+  }, [filteredSnapshots, displayedWorth])
 
   // Income vs spend chart — uses metric readings from details
   // We look for metrics by common names: income, spend, savings
@@ -297,6 +319,10 @@ export default function ReportsPage() {
               hasDebt={hasDebt}
               hideDebt={hideDebt}
               onToggle={() => setHideDebt((v) => !v)}
+            />
+            <HideAssetsToggle
+              hideAssets={hideAssets}
+              onToggle={() => setHideAssets((value) => !value)}
             />
 
             {/* Timeframe selector */}
