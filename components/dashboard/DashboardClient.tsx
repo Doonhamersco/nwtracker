@@ -56,6 +56,11 @@ interface DashboardClientProps {
   activeSubscriptionCount?: number;
   /** Dev preview only. The live dashboard loads this line from /api/training. */
   fitnessSummary?: string;
+  /** Current physical-asset total, added to the live net worth figure. */
+  physicalAssetsGbp?: number;
+  /** Physical assets already included in the previous check-in's account valuations. */
+  previousPhysicalAssetsGbp?: number;
+  physicalHoldings?: Array<{ category: string; valueGbp: number }>;
 }
 
 function computeNetWorthFromValuations(
@@ -103,6 +108,9 @@ export function DashboardClient({
   monthlySubscriptionGbp = 0,
   activeSubscriptionCount = 0,
   fitnessSummary,
+  physicalAssetsGbp = 0,
+  previousPhysicalAssetsGbp = 0,
+  physicalHoldings = [],
 }: DashboardClientProps) {
   const { timeframe, setTimeframe, hideDebt, setHideDebt } = useDashboardPrefs();
   const [events, setEvents] = useState<NotableEvent[]>(initialEvents);
@@ -143,18 +151,20 @@ export function DashboardClient({
   );
 
   const heroNetWorth =
-    fromValuations ??
-    (latestSnapshot?.netWorthGbp !== null && latestSnapshot?.netWorthGbp !== undefined
-      ? latestSnapshot.netWorthGbp +
-        (hideDebt ? (debtBySnapshot[latestSnapshot.id] ?? 0) : 0)
-      : null);
+    fromValuations !== null
+      ? fromValuations + physicalAssetsGbp
+      : latestSnapshot?.netWorthGbp !== null && latestSnapshot?.netWorthGbp !== undefined
+        ? latestSnapshot.netWorthGbp +
+          (hideDebt ? (debtBySnapshot[latestSnapshot.id] ?? 0) : 0)
+        : null;
 
   const heroPrevious =
-    prevFromValuations ??
-    (previousSnapshot?.netWorthGbp !== null && previousSnapshot?.netWorthGbp !== undefined
-      ? previousSnapshot.netWorthGbp +
-        (hideDebt ? (debtBySnapshot[previousSnapshot.id] ?? 0) : 0)
-      : null);
+    prevFromValuations !== null
+      ? prevFromValuations + previousPhysicalAssetsGbp
+      : previousSnapshot?.netWorthGbp !== null && previousSnapshot?.netWorthGbp !== undefined
+        ? previousSnapshot.netWorthGbp +
+          (hideDebt ? (debtBySnapshot[previousSnapshot.id] ?? 0) : 0)
+        : null;
 
   const chartSnapshots = hideDebt
     ? initialSnapshots.map((s) => ({
@@ -190,14 +200,28 @@ export function DashboardClient({
     [hideDebt, previousValuations, accountById]
   );
 
-  const accountSummaries = visibleAccounts.map((acc) => {
-    const val = visibleLatestValuations.find((v) => v.accountId === acc.id);
-    return {
-      category: acc.category,
-      valueGbp: val?.valueGbp ?? 0,
-      accountType: acc.type as "ASSET" | "LIABILITY",
-    };
-  });
+  const MIX_CATEGORY: Record<string, string> = {
+    vehicle: "VEHICLE",
+    property: "PROPERTY",
+    valuables: "VALUABLES",
+    other: "OTHER_ASSET",
+  };
+
+  const accountSummaries = [
+    ...visibleAccounts.map((acc) => {
+      const val = visibleLatestValuations.find((v) => v.accountId === acc.id);
+      return {
+        category: acc.category,
+        valueGbp: val?.valueGbp ?? 0,
+        accountType: acc.type as "ASSET" | "LIABILITY",
+      };
+    }),
+    ...physicalHoldings.map((asset) => ({
+      category: MIX_CATEGORY[asset.category] ?? "OTHER_ASSET",
+      valueGbp: asset.valueGbp,
+      accountType: "ASSET" as const,
+    })),
+  ];
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">

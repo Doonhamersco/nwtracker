@@ -54,6 +54,50 @@ export function computeNetWorthFromInputs(inputs: ValuationInput[]): {
   return { netWorthGbp: computeNetWorth(valuations), valuations };
 }
 
+export interface SnapshotWorth {
+  id: string;
+  takenAt: string;
+  netWorthGbp: number | null;
+  isPartial: boolean;
+  /** Physical-asset portion already baked into netWorthGbp. Null before that column existed. */
+  physicalAssetsGbp?: number | null;
+}
+
+/**
+ * Keep historical points as they were stored. The latest committed point
+ * swaps the physical-asset amount captured at check-in for today's total,
+ * so the overview and the right-hand end of the chart follow current values
+ * without rewriting earlier months.
+ */
+export function withCurrentPhysicalAssets<T extends SnapshotWorth>(
+  snapshots: T[],
+  currentPhysicalAssetsGbp: number
+): T[] {
+  const latest = snapshots
+    .filter((snapshot) => !snapshot.isPartial && snapshot.netWorthGbp !== null)
+    .slice()
+    .sort((a, b) => takenAtMs(b.takenAt) - takenAtMs(a.takenAt))[0];
+  if (!latest || latest.netWorthGbp === null) return snapshots;
+
+  const included = latest.physicalAssetsGbp ?? 0;
+  const netWorthGbp = roundMoney(
+    latest.netWorthGbp - included + currentPhysicalAssetsGbp
+  );
+  return snapshots.map((snapshot) =>
+    snapshot.id === latest.id ? { ...snapshot, netWorthGbp } : snapshot
+  );
+}
+
+function takenAtMs(value: string): number {
+  const normalised = value.includes("T") ? value : value.replace(" ", "T");
+  const parsed = Date.parse(normalised);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function roundMoney(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 /**
  * Month-over-month change.
  */

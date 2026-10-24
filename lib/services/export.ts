@@ -9,10 +9,11 @@ import {
   goals,
   subscriptions,
   careerPlans,
+  physicalAssets,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-export const EXPORT_SCHEMA_VERSION = 1;
+export const EXPORT_SCHEMA_VERSION = 2;
 
 export type AccountRow = typeof accounts.$inferSelect;
 export type SnapshotRow = typeof snapshots.$inferSelect;
@@ -23,6 +24,7 @@ export type MetricReadingRow = typeof lifeMetricReadings.$inferSelect;
 export type GoalRow = typeof goals.$inferSelect;
 export type SubscriptionRow = typeof subscriptions.$inferSelect;
 export type CareerPlanRow = typeof careerPlans.$inferSelect;
+export type PhysicalAssetRow = typeof physicalAssets.$inferSelect;
 
 export interface ExportPayload {
   schemaVersion: number;
@@ -36,6 +38,7 @@ export interface ExportPayload {
   goals: GoalRow[];
   subscriptions: SubscriptionRow[];
   careerPlans: CareerPlanRow[];
+  physicalAssets: PhysicalAssetRow[];
 }
 
 export function exportToJson(): ExportPayload {
@@ -51,6 +54,7 @@ export function exportToJson(): ExportPayload {
     goals: db.select().from(goals).all(),
     subscriptions: db.select().from(subscriptions).all(),
     careerPlans: db.select().from(careerPlans).all(),
+    physicalAssets: db.select().from(physicalAssets).all(),
   };
 }
 

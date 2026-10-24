@@ -8,7 +8,8 @@ import {
   lifeMetricReadings,
   accounts,
 } from "@/db/schema";
-import { projectGoalCompletion } from "@/lib/engine/net-worth";
+import { projectGoalCompletion, withCurrentPhysicalAssets } from "@/lib/engine/net-worth";
+import { totalPhysicalAssetsGbp } from "@/lib/services/physical-assets";
 import { listFiles, deleteFile, type FileRow } from "@/lib/services/files";
 import type { CreateGoalInput, UpdateGoalInput } from "@/lib/validators/goals";
 
@@ -65,16 +66,17 @@ function getCurrentValueForGoal(goal: GoalRow): {
   }
 
   if (goal.metricType === "NET_WORTH") {
-    const dataPoints = allSnapshots
+    const snapshots = withCurrentPhysicalAssets(allSnapshots, totalPhysicalAssetsGbp());
+    const dataPoints = snapshots
       .filter((s) => s.netWorthGbp !== null)
       .map((s) => ({
         timestamp: new Date(s.takenAt).getTime(),
         value: s.netWorthGbp!,
       }));
 
-    const lastSnapshot = allSnapshots[allSnapshots.length - 1];
+    const lastSnapshot = snapshots[snapshots.length - 1];
     const currentValue =
-      lastSnapshot.netWorthGbp !== null ? lastSnapshot.netWorthGbp : null;
+      lastSnapshot && lastSnapshot.netWorthGbp !== null ? lastSnapshot.netWorthGbp : null;
 
     return { currentValue, dataPoints };
   }

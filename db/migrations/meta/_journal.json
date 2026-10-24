@@ -71,6 +71,13 @@
       "when": 1792847687386,
       "tag": "0009_transactions",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1792869254072,
+      "tag": "0010_physical_assets",
+      "breakpoints": true
     }
   ]
 }

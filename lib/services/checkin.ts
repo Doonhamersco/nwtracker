@@ -23,6 +23,7 @@ import {
 } from "@/db/schema";
 import { fetchAllRatesForAccounts, type FxRateResult } from "./fx";
 import { computeNetWorthFromInputs } from "@/lib/engine/net-worth";
+import { totalPhysicalAssetsGbp } from "@/lib/services/physical-assets";
 import { hevyClient } from "@/lib/hevy/client";
 import { hevyValueForMetric, readingsFromHevyStats } from "@/lib/hevy/metrics";
 
@@ -268,13 +269,15 @@ export async function commitCheckin(
     };
   });
 
-  const { netWorthGbp } = computeNetWorthFromInputs(
+  const { netWorthGbp: accountNetWorthGbp } = computeNetWorthFromInputs(
     valuationInputs.map((v) => ({
       accountType: v.accountType,
       valueNative: v.valueNative,
       fxRateToGbp: v.fxRateToGbp,
     }))
   );
+  const physicalAssetsGbp = totalPhysicalAssetsGbp();
+  const netWorthGbp = Math.round((accountNetWorthGbp + physicalAssetsGbp) * 100) / 100;
 
   const snapshotId = randomUUID();
   const takenAt = input.takenAt ?? new Date().toISOString();
@@ -295,6 +298,7 @@ export async function commitCheckin(
         notes: input.notes ?? null,
         isPartial: input.isPartial,
         netWorthGbp,
+        physicalAssetsGbp,
       })
       .run();
 
@@ -500,6 +504,7 @@ export interface SnapshotSummary {
   id: string;
   takenAt: string;
   netWorthGbp: number | null;
+  physicalAssetsGbp: number | null;
   isPartial: boolean;
   notes: string | null;
 }
@@ -510,6 +515,7 @@ export function getSnapshotHistory(limit = 120): SnapshotSummary[] {
       id: snapshots.id,
       takenAt: snapshots.takenAt,
       netWorthGbp: snapshots.netWorthGbp,
+      physicalAssetsGbp: snapshots.physicalAssetsGbp,
       isPartial: snapshots.isPartial,
       notes: snapshots.notes,
     })

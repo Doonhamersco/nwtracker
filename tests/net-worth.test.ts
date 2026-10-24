@@ -6,6 +6,7 @@ import {
   computeMoMChange,
   computeSavingsRate,
   projectGoalCompletion,
+  withCurrentPhysicalAssets,
 } from "@/lib/engine/net-worth";
 
 describe("convertToGbp", () => {
@@ -102,6 +103,52 @@ describe("FX snapshot isolation", () => {
     //  here we verify the engine never touches old values.)
     expect(juneNetWorth).toBeCloseTo(20000);
     expect(juneNetWorth).not.toBeCloseTo(decemberNetWorth);
+  });
+});
+
+describe("withCurrentPhysicalAssets", () => {
+  const older = {
+    id: "old",
+    takenAt: "2026-01-01T00:00:00.000Z",
+    netWorthGbp: 8000,
+    physicalAssetsGbp: null,
+    isPartial: false,
+  };
+  const latest = {
+    id: "new",
+    takenAt: "2026-06-01T00:00:00.000Z",
+    netWorthGbp: 10000,
+    physicalAssetsGbp: 1000,
+    isPartial: false,
+  };
+
+  it("leaves earlier snapshots unchanged and updates only the latest point", () => {
+    const [first, second] = withCurrentPhysicalAssets([older, latest], 1500);
+    expect(first).toEqual(older);
+    expect(second.netWorthGbp).toBeCloseTo(10500);
+  });
+
+  it("does not add the current total twice when it is already in the snapshot", () => {
+    const [point] = withCurrentPhysicalAssets([latest], 1000);
+    expect(point.netWorthGbp).toBeCloseTo(10000);
+  });
+
+  it("adds today's assets onto a snapshot that predates them", () => {
+    const [point] = withCurrentPhysicalAssets([older], 2000);
+    expect(point.netWorthGbp).toBeCloseTo(10000);
+  });
+
+  it("does not rewrite a partial snapshot ahead of the last committed one", () => {
+    const partial = {
+      id: "partial",
+      takenAt: "2026-07-01T00:00:00.000Z",
+      netWorthGbp: 11000,
+      physicalAssetsGbp: null,
+      isPartial: true,
+    };
+    const points = withCurrentPhysicalAssets([older, latest, partial], 1500);
+    expect(points[1].netWorthGbp).toBeCloseTo(10500);
+    expect(points[2].netWorthGbp).toBe(11000);
   });
 });
 
