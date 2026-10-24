@@ -49,22 +49,26 @@ describe("profile theme helpers", () => {
     expect(darkenHex("#c5a059")).toMatch(/^#[0-9a-f]{6}$/);
   });
 
-  it("keeps the original gold palette when the accent is default", () => {
+  it("keeps the slate palette and emerald gains when the accent is default", () => {
     const palette = paletteFromAccent(DEFAULT_ACCENT_COLOR);
     expect(palette.accent).toBe(DEFAULT_ACCENT_COLOR);
-    expect(palette.muted).toBe("#9a8d7a");
-    expect(palette.border).toBe("#2a261f");
-    expect(palette.bgCard).toBe("#141210");
+    expect(palette.positive).toBe("#34d399");
+    expect(palette.negative).toBe("#e7a3ad");
+    expect(palette.muted).toBe("#93a4b8");
+    expect(palette.border).toBe("#243044");
+    expect(palette.bgCard).toBe("#121922");
   });
 
-  it("tints chrome away from gold when the accent changes", () => {
+  it("tints slate chrome when the accent changes and keeps gain colours", () => {
     const palette = paletteFromAccent("#6b8cae");
     expect(palette.accent).toBe("#6b8cae");
-    expect(palette.positive).toBe("#6b8cae");
-    expect(palette.muted).not.toBe("#9a8d7a");
-    expect(palette.border).not.toBe("#2a261f");
+    expect(palette.positive).toBe("#34d399");
+    expect(palette.negative).toBe("#e7a3ad");
+    expect(palette.muted).not.toBe("#93a4b8");
+    expect(palette.border).not.toBe("#243044");
     expect(themeStyleText("#6b8cae")).toContain("--nw-accent:#6b8cae");
-    expect(themeStyleText("#6b8cae")).toContain("--nw-muted:");
+    expect(themeStyleText("#6b8cae")).toContain("--nw-positive:#34d399");
+    expect(themeStyleText("#6b8cae")).toContain("--nw-negative:#e7a3ad");
   });
 });
 

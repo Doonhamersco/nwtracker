@@ -1,6 +1,6 @@
 import { inArray } from "drizzle-orm";
 import { db } from "@/db/client";
-import { accounts, accountValuations } from "@/db/schema";
+import { accounts, accountValuations, subscriptions } from "@/db/schema";
 import {
   getSnapshotHistory,
   getSnapshotById,
@@ -9,6 +9,8 @@ import {
 import { listEvents } from "@/lib/services/events";
 import { listWeightReadings } from "@/lib/services/weight";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { buildDashboardSeries } from "@/lib/dashboard-kpis";
+import { activeMonthlyTotal } from "@/lib/subscriptions-math";
 
 export const metadata = {
   title: "Dashboard — nwTracker",
@@ -85,6 +87,35 @@ export default async function DashboardPage() {
 
   const initialWeightReadings = listWeightReadings();
 
+  const subscriptionRows = db
+    .select({
+      status: subscriptions.status,
+      costGbp: subscriptions.costGbp,
+      billingCycle: subscriptions.billingCycle,
+    })
+    .from(subscriptions)
+    .all();
+
+  const snapshotIds = snapshots.map((snapshot) => snapshot.id);
+  const valuationHistory =
+    snapshotIds.length === 0
+      ? []
+      : db
+          .select({
+            snapshotId: accountValuations.snapshotId,
+            accountId: accountValuations.accountId,
+            valueGbp: accountValuations.valueGbp,
+          })
+          .from(accountValuations)
+          .where(inArray(accountValuations.snapshotId, snapshotIds))
+          .all();
+
+  const dashboardSeries = buildDashboardSeries({
+    snapshots,
+    valuations: valuationHistory,
+    accounts: accountRows,
+  });
+
   return (
     <DashboardClient
       initialSnapshots={snapshots}
@@ -94,6 +125,10 @@ export default async function DashboardPage() {
       debtBySnapshot={debtBySnapshot}
       initialEvents={initialEvents}
       initialWeightReadings={initialWeightReadings}
+      series={dashboardSeries.points}
+      movesByDate={dashboardSeries.movesByDate}
+      monthlySubscriptionGbp={activeMonthlyTotal(subscriptionRows)}
+      activeSubscriptionCount={subscriptionRows.filter((row) => row.status === "active").length}
     />
   );
 }

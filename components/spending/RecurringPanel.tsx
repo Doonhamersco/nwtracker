@@ -30,7 +30,7 @@ export function RecurringPanel({
       )}
 
       <Card>
-        <h2 className="font-display text-lg text-text">
+        <h2 className="font-display text-xl font-medium text-text">
           Recurring payments not in Subscriptions
         </h2>
         <p className="mt-1 text-sm text-muted">

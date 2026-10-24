@@ -17,16 +17,16 @@ export function TransactionsTable({
   if (transactions.length === 0) {
     return (
       <Card>
-        <h2 className="font-display text-lg text-text">Transactions</h2>
+        <h2 className="font-display text-xl font-medium text-text">Transactions</h2>
         <p className="mt-3 text-sm text-muted">No transactions in this month.</p>
       </Card>
     )
   }
 
   return (
-    <Card className="overflow-hidden p-0 sm:p-0">
-      <div className="px-5 pt-5 sm:px-6">
-        <h2 className="font-display text-lg text-text">Transactions</h2>
+    <Card padding="none" className="overflow-hidden">
+      <div className="px-5 pt-5 sm:px-6 sm:pt-6">
+        <h2 className="font-display text-xl font-medium text-text">Transactions</h2>
         <p className="mt-1 text-sm text-muted">
           Change a category inline. Tick apply to future so the next import uses it.
         </p>

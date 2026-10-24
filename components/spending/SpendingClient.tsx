@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/Card"
+import { Badge } from "@/components/ui/Badge"
 import { formatMonthLabel } from "@/lib/spending/dates"
 import { formatGbp, formatPct } from "@/lib/spending/money"
 import type { MerchantSpend, SpendingReport } from "@/lib/spending/types"
@@ -10,7 +11,13 @@ import { RecurringPanel } from "./RecurringPanel"
 import { SpendingCharts } from "./SpendingCharts"
 import { TransactionsTable } from "./TransactionsTable"
 
-export function SpendingClient({ report }: { report: SpendingReport }) {
+export function SpendingClient({
+  report,
+  basePath = "/spending",
+}: {
+  report: SpendingReport
+  basePath?: string
+}) {
   const router = useRouter()
   const [pendingMonth, setPendingMonth] = useState<string | null>(null)
   const selectedMonth =
@@ -24,7 +31,7 @@ export function SpendingClient({ report }: { report: SpendingReport }) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-medium tracking-tight text-text">
@@ -42,7 +49,7 @@ export function SpendingClient({ report }: { report: SpendingReport }) {
             onChange={(event) => {
               const next = event.target.value
               setPendingMonth(next)
-              router.push(`/spending?month=${encodeURIComponent(next)}`)
+              router.push(`${basePath}?month=${encodeURIComponent(next)}`)
             }}
             className="rounded-lg border border-border bg-bg-base px-3 py-2 text-sm normal-case tracking-normal text-text focus:border-accent focus:outline-none"
           >
@@ -67,16 +74,26 @@ export function SpendingClient({ report }: { report: SpendingReport }) {
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <Stat
               label="Spend"
               value={formatGbp(report.totals.spend)}
               hint={
                 spendDelta === null
                   ? "Excludes transfers"
-                  : `${spendDelta > 0 ? "+" : ""}${formatGbp(spendDelta)} vs ${formatMonthLabel(report.previous?.month ?? "")}`
+                  : `vs ${formatMonthLabel(report.previous?.month ?? "")}`
               }
               tone={spendDelta !== null && spendDelta > 0 ? "negative" : "default"}
+              badge={
+                spendDelta === null ? (
+                  <Badge variant="neutral">Transfers out</Badge>
+                ) : (
+                  <Badge variant={spendDelta > 0 ? "negative" : "positive"}>
+                    {spendDelta > 0 ? "+" : ""}
+                    {formatGbp(spendDelta)}
+                  </Badge>
+                )
+              }
             />
             <Stat
               label="Income"
@@ -99,7 +116,7 @@ export function SpendingClient({ report }: { report: SpendingReport }) {
           <SpendingCharts byCategory={report.byCategory} trend={report.trend} />
 
           <Card>
-            <h2 className="font-display text-lg text-text">Top merchants</h2>
+            <h2 className="font-display text-xl font-medium text-text">Top merchants</h2>
             {report.topMerchants.length === 0 ? (
               <p className="mt-3 text-sm text-muted">No merchant spend this month.</p>
             ) : (
@@ -129,19 +146,26 @@ function Stat({
   value,
   hint,
   tone,
+  badge,
 }: {
   label: string
   value: string
   hint: string
   tone: "default" | "positive" | "negative"
+  badge?: React.ReactNode
 }) {
   const color =
     tone === "negative" ? "text-negative" : tone === "positive" ? "text-positive" : "text-text"
   return (
-    <Card>
-      <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
-      <p className={`mt-2 font-display text-3xl tracking-tight ${color}`}>{value}</p>
-      <p className="mt-2 text-xs text-muted">{hint}</p>
+    <Card variant="inset" padding="compact" className="flex h-full min-w-0 flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted">
+          {label}
+        </span>
+        {badge}
+      </div>
+      <p className={`font-mono text-2xl tabular-nums tracking-tight ${color}`}>{value}</p>
+      <p className="text-xs text-muted">{hint}</p>
     </Card>
   )
 }

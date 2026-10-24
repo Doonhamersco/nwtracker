@@ -1,6 +1,8 @@
 "use client";
 
-export type Timeframe = "1M" | "3M" | "6M" | "1Y" | "ALL";
+import type { Timeframe } from "@/lib/dashboard-kpis";
+
+export type { Timeframe };
 
 const OPTIONS: { value: Timeframe; label: string }[] = [
   { value: "1M", label: "1M" },

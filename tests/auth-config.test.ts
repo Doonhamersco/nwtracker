@@ -114,4 +114,28 @@ describe("proxy route protection", () => {
       proxyDecision({ pathname: "/api/import/transactions", isLoggedIn: false })
     ).toBe("allow")
   })
+
+  it("keeps dev layout previews open and closes them in production", () => {
+    expect(
+      proxyDecision({
+        pathname: "/preview/fitness",
+        isLoggedIn: false,
+        nodeEnv: "development",
+      })
+    ).toBe("allow")
+    expect(
+      proxyDecision({
+        pathname: "/preview/spending",
+        isLoggedIn: false,
+        nodeEnv: "test",
+      })
+    ).toBe("allow")
+    expect(
+      proxyDecision({
+        pathname: "/preview/overview",
+        isLoggedIn: false,
+        nodeEnv: "production",
+      })
+    ).toBe("redirect")
+  })
 })

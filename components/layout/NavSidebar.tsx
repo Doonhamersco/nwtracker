@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
+  Dumbbell,
   Wallet,
   ReceiptPoundSterling,
   CreditCard,
@@ -35,6 +36,7 @@ function getCurrentAge(): number {
 
 const navLinks = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/fitness", label: "Fitness", icon: Dumbbell },
   { href: "/assets", label: "Accounts", icon: Wallet },
   { href: "/spending", label: "Spending", icon: ReceiptPoundSterling },
   { href: "/subscriptions", label: "Subscriptions", icon: CreditCard },

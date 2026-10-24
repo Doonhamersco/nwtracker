@@ -7,6 +7,7 @@ export default auth((req) => {
     isLoggedIn: !!req.auth?.user,
     authorization: req.headers.get("authorization"),
     hevySyncToken: process.env.HEVY_SYNC_TOKEN,
+    nodeEnv: process.env.NODE_ENV,
   })
 
   if (decision === "allow") return

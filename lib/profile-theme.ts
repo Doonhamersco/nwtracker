@@ -8,17 +8,25 @@ export const ACCENT_PRESETS = [
   "#c47a8a",
 ] as const;
 
-/** Default Warm Ledger tokens — used when the accent is still gold. */
+/** Emerald gains and a soft rose for losses. Independent of the accent. */
+export const GAIN_COLOR = "#34d399";
+export const LOSS_COLOR = "#e7a3ad";
+
+/**
+ * Default slate chrome. Gold stays the accent; other accents tint these
+ * surfaces. Gains stay emerald either way. Hexes match app/globals.css.
+ */
 export const DEFAULT_PALETTE = {
   accent: DEFAULT_ACCENT_COLOR,
   accentHover: "#b48d45",
-  positive: DEFAULT_ACCENT_COLOR,
-  muted: "#9a8d7a",
-  placeholder: "#6b6156",
-  border: "#2a261f",
-  borderStrong: "#3d372e",
-  bgHover: "#1c1914",
-  bgCard: "#141210",
+  positive: GAIN_COLOR,
+  negative: LOSS_COLOR,
+  muted: "#93a4b8",
+  placeholder: "#64748b",
+  border: "#243044",
+  borderStrong: "#334155",
+  bgHover: "#1a2431",
+  bgCard: "#121922",
 } as const;
 
 export const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
@@ -79,6 +87,7 @@ export type ThemePalette = {
   accent: string;
   accentHover: string;
   positive: string;
+  negative: string;
   muted: string;
   placeholder: string;
   border: string;
@@ -88,9 +97,10 @@ export type ThemePalette = {
 };
 
 /**
- * Build a dark palette from one accent. Gold keeps the original Warm Ledger
- * tokens; any other colour tints muted text, borders, and hover surfaces
- * so the whole chrome follows the choice — not just font colour.
+ * Build a dark slate palette from one accent. Gold keeps the default slate
+ * tokens; any other colour tints muted text, borders, and hover surfaces.
+ * Gains stay emerald and losses stay rose so money direction stays readable
+ * when the accent changes.
  */
 export function paletteFromAccent(accent: string): ThemePalette {
   const hex = accent.toLowerCase();
@@ -100,7 +110,8 @@ export function paletteFromAccent(accent: string): ThemePalette {
   return {
     accent: hex,
     accentHover: darkenHex(hex, 0.12),
-    positive: hex,
+    positive: GAIN_COLOR,
+    negative: LOSS_COLOR,
     muted: mixHex(DEFAULT_PALETTE.muted, hex, 0.42),
     placeholder: mixHex(DEFAULT_PALETTE.placeholder, hex, 0.32),
     border: mixHex(DEFAULT_PALETTE.border, hex, 0.22),
@@ -116,6 +127,7 @@ export function themeCssVars(accent: string): Record<string, string> {
     "--nw-accent": p.accent,
     "--nw-accent-hover": p.accentHover,
     "--nw-positive": p.positive,
+    "--nw-negative": p.negative,
     "--nw-muted": p.muted,
     "--nw-placeholder": p.placeholder,
     "--nw-border": p.border,
@@ -125,6 +137,7 @@ export function themeCssVars(accent: string): Record<string, string> {
     "--color-accent": p.accent,
     "--color-accent-hover": p.accentHover,
     "--color-positive": p.positive,
+    "--color-negative": p.negative,
     "--color-muted": p.muted,
     "--color-placeholder": p.placeholder,
     "--color-border": p.border,

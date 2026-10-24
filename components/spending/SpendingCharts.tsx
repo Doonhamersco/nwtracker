@@ -16,26 +16,27 @@ import {
 } from "recharts"
 import { Card } from "@/components/ui/Card"
 import { useAccentColor } from "@/components/layout/ProfileProvider"
-import { paletteFromAccent } from "@/lib/profile-theme"
+import { LOSS_COLOR, paletteFromAccent } from "@/lib/profile-theme"
 import { formatMonthLabel } from "@/lib/spending/dates"
 import { formatGbp } from "@/lib/spending/money"
 import type { CategorySpend, MonthTrend } from "@/lib/spending/types"
 
-const SLICE_COLORS = [
-  "#c5a059",
-  "#d47a6a",
-  "#8a9bb0",
-  "#7d9a78",
-  "#e0c992",
-  "#a67c6d",
-  "#6e8b9a",
-  "#b8954a",
-  "#9c8a62",
-  "#c4b49a",
+/** Slate chart fills, matching the dashboard category donut. Index 0 is the accent. */
+const SLICE_FALLBACKS = [
+  "#5eead4",
+  "#38bdf8",
+  "#818cf8",
+  "#6ee7b7",
+  "#94a3b8",
+  "#7dd3fc",
+  "#e7a3ad",
+  "#64748b",
+  "#a5b4fc",
 ]
 
-export function categoryColor(index: number): string {
-  return SLICE_COLORS[index % SLICE_COLORS.length]
+export function categoryColor(index: number, accent: string): string {
+  if (index === 0) return accent
+  return SLICE_FALLBACKS[(index - 1) % SLICE_FALLBACKS.length]
 }
 
 export function SpendingCharts({
@@ -50,8 +51,8 @@ export function SpendingCharts({
   const tooltipStyle = {
     backgroundColor: palette.bgCard,
     border: `1px solid ${palette.border}`,
-    borderRadius: 8,
-    color: "#f7f1e6",
+    borderRadius: 12,
+    color: "var(--nw-text)",
     fontSize: 12,
   }
   const axis = { fill: palette.muted, fontSize: 11 }
@@ -59,7 +60,7 @@ export function SpendingCharts({
     .filter((row) => row.spend > 0)
     .map((row, index) => ({
       ...row,
-      fill: categoryColor(index),
+      fill: categoryColor(index, accent),
     }))
   const trendData = trend.map((row) => ({
     ...row,
@@ -70,7 +71,7 @@ export function SpendingCharts({
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card>
-        <h2 className="font-display text-lg text-text">Spend by category</h2>
+        <h2 className="font-display text-xl font-medium text-text">Spend by category</h2>
         {slices.length === 0 ? (
           <p className="mt-6 text-sm text-muted">No spending this month.</p>
         ) : (
@@ -119,7 +120,7 @@ export function SpendingCharts({
       </Card>
 
       <Card>
-        <h2 className="font-display text-lg text-text">Month on month</h2>
+        <h2 className="font-display text-xl font-medium text-text">Month on month</h2>
         <p className="mt-1 text-xs text-muted">Accent bars are this month. Pale bars are last month.</p>
         {byCategory.length === 0 ? (
           <p className="mt-6 text-sm text-muted">Nothing to compare yet.</p>
@@ -158,7 +159,7 @@ export function SpendingCharts({
       </Card>
 
       <Card className="lg:col-span-2">
-        <h2 className="font-display text-lg text-text">Trend</h2>
+        <h2 className="font-display text-xl font-medium text-text">Trend</h2>
         {trendData.length === 0 ? (
           <p className="mt-6 text-sm text-muted">Import a statement to see a trend.</p>
         ) : (
@@ -182,9 +183,9 @@ export function SpendingCharts({
                 <Line
                   type="monotone"
                   dataKey="spend"
-                  stroke="#d47a6a"
+                  stroke={LOSS_COLOR}
                   strokeWidth={2}
-                  dot={{ r: 4, fill: "#d47a6a", strokeWidth: 0 }}
+                  dot={{ r: 4, fill: LOSS_COLOR, strokeWidth: 0 }}
                   activeDot={{ r: 6 }}
                 />
                 <Line
