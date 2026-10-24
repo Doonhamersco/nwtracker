@@ -65,8 +65,11 @@ export type ParsedChaseStatement = ImportTransactionsInput & {
 /**
  * Parse text extracted from a Chase UK statement PDF.
  * Each transaction is a dated line plus the type (and, for a foreign
- * purchase, an exchange-rate line) printed underneath. Amounts are signed:
- * plus is money in, minus is money out, followed by the running balance.
+ * purchase, an exchange-rate line) printed underneath. Amounts may be signed,
+ * carry a £ or GBP prefix, include thousands commas, and sit on the date line
+ * or a following line beside the running balance. Opening and closing balance
+ * rows are not transactions. A row that still has no readable amount is listed
+ * in `warnings` and does not abort the rest of the statement.
  */
 export function parseChaseStatementText(text: string): ParsedChaseStatement {
   const lines = normaliseStatement(text)
