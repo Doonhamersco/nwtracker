@@ -219,7 +219,32 @@ describe("commitCheckin", () => {
 
     const [saved] = db.select().from(snapshots).where(eq(snapshots.id, result.snapshotId)).all();
     expect(saved.netWorthGbp).toBeCloseTo(7000);
+    expect(saved.physicalAssetsGbp).toBe(0);
     expect(saved.isPartial).toBe(false);
+  });
+
+  it("includes physical assets in the materialised net worth", async () => {
+    const { createPhysicalAsset } = await import("@/lib/services/physical-assets");
+    const asset = insertAccount({ name: "Cash", type: "ASSET", currencyCode: "GBP" });
+    createPhysicalAsset({
+      name: "Example car",
+      category: "vehicle",
+      valueGbp: 4500,
+      purchaseDate: "2020-05-01",
+      purchasePriceGbp: 6000,
+      notes: "Bought outright",
+    });
+
+    const result = await commitCheckin({
+      valuations: [{ accountId: asset.id, valueNative: 10000, isCarriedForward: false }],
+      metrics: [],
+      isPartial: false,
+    });
+
+    expect(result.netWorthGbp).toBeCloseTo(14500);
+    const [saved] = db.select().from(snapshots).where(eq(snapshots.id, result.snapshotId)).all();
+    expect(saved.physicalAssetsGbp).toBeCloseTo(4500);
+    expect(saved.netWorthGbp).toBeCloseTo(14500);
   });
 
   it("stores value_gbp using the snapshot FX rate, not 1:1 for non-GBP", async () => {

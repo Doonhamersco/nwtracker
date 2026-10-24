@@ -8,8 +8,10 @@ import {
 } from "@/lib/services/checkin";
 import { listEvents } from "@/lib/services/events";
 import { listWeightReadings } from "@/lib/services/weight";
+import { listPhysicalAssets, totalPhysicalAssetsGbp } from "@/lib/services/physical-assets";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { buildDashboardSeries } from "@/lib/dashboard-kpis";
+import { withCurrentPhysicalAssets } from "@/lib/engine/net-worth";
 import { activeMonthlyTotal } from "@/lib/subscriptions-math";
 
 export const metadata = {
@@ -110,15 +112,19 @@ export default async function DashboardPage() {
           .where(inArray(accountValuations.snapshotId, snapshotIds))
           .all();
 
+  const physicalHoldings = listPhysicalAssets();
+  const physicalAssetsGbp = totalPhysicalAssetsGbp();
+  const displayedSnapshots = withCurrentPhysicalAssets(snapshots, physicalAssetsGbp);
+
   const dashboardSeries = buildDashboardSeries({
-    snapshots,
+    snapshots: displayedSnapshots,
     valuations: valuationHistory,
     accounts: accountRows,
   });
 
   return (
     <DashboardClient
-      initialSnapshots={snapshots}
+      initialSnapshots={displayedSnapshots}
       latestValuations={latestValuations}
       previousValuations={previousValuations}
       accounts={accountRows}
@@ -129,6 +135,12 @@ export default async function DashboardPage() {
       movesByDate={dashboardSeries.movesByDate}
       monthlySubscriptionGbp={activeMonthlyTotal(subscriptionRows)}
       activeSubscriptionCount={subscriptionRows.filter((row) => row.status === "active").length}
+      physicalAssetsGbp={physicalAssetsGbp}
+      previousPhysicalAssetsGbp={previousSnapshot?.physicalAssetsGbp ?? 0}
+      physicalHoldings={physicalHoldings.map((asset) => ({
+        category: asset.category,
+        valueGbp: asset.valueGbp,
+      }))}
     />
   );
 }

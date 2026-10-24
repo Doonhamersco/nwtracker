@@ -21,6 +21,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   PENSION: "#6ee7b7",
   PROPERTY: "#818cf8",
   STOCKS: "#7dd3fc",
+  VALUABLES: "#fbbf24",
   OTHER_ASSET: "#64748b",
 };
 
@@ -32,6 +33,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   PENSION: "Pension",
   PROPERTY: "Property",
   STOCKS: "Investments",
+  VALUABLES: "Valuables",
   OTHER_ASSET: "Other",
 };
 

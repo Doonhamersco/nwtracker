@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/Card"
 import { DebtToggle } from "@/components/dashboard/DebtToggle"
 import { useAccentColor } from "@/components/layout/ProfileProvider"
 import { paletteFromAccent } from "@/lib/profile-theme"
+import { withCurrentPhysicalAssets } from "@/lib/engine/net-worth"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,7 @@ interface SnapshotSummary {
   id: string
   takenAt: string
   netWorthGbp: number | null
+  physicalAssetsGbp?: number | null
   isPartial: boolean
   notes: string | null
 }
@@ -100,14 +102,20 @@ export default function ReportsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [snapRes, accountsRes] = await Promise.all([
+        const [snapRes, accountsRes, assetsRes] = await Promise.all([
           fetch("/api/snapshots?limit=120"),
           fetch("/api/accounts?includeInactive=true"),
+          fetch("/api/physical-assets"),
         ])
         if (!snapRes.ok) throw new Error("Failed to load snapshots")
         const all = (await snapRes.json()) as SnapshotSummary[]
-        // Oldest first for charts
-        const sorted = [...all].reverse()
+        let physicalTotal = 0
+        if (assetsRes.ok) {
+          const assets = (await assetsRes.json()) as { totalGbp?: number }
+          physicalTotal = assets.totalGbp ?? 0
+        }
+        // Oldest first for charts. Only the latest committed point picks up today's asset total.
+        const sorted = withCurrentPhysicalAssets([...all].reverse(), physicalTotal)
         setSnapshots(sorted)
 
         if (accountsRes.ok) {

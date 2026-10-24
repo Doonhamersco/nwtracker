@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Dumbbell,
   Wallet,
+  Gem,
   ReceiptPoundSterling,
   CreditCard,
   Film,
@@ -33,16 +34,33 @@ function getCurrentAge(): number {
   return age
 }
 
-const navLinks = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/fitness", label: "Fitness", icon: Dumbbell },
-  { href: "/assets", label: "Accounts", icon: Wallet },
-  { href: "/spending", label: "Spending", icon: ReceiptPoundSterling },
-  { href: "/subscriptions", label: "Subscriptions", icon: CreditCard },
-  { href: "/diaries", label: "Diaries", icon: Film },
-  { href: "/goals", label: "Goals", icon: Target },
-  { href: "/plan", label: "Plan", icon: Compass },
-  { href: "/reports", label: "Reports", icon: BarChart2 },
+const navSections: Array<{
+  label?: string
+  items: Array<{ href: string; label: string; icon: typeof LayoutDashboard }>
+}> = [
+  {
+    items: [
+      { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+      { href: "/fitness", label: "Fitness", icon: Dumbbell },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { href: "/assets", label: "Accounts", icon: Wallet },
+      { href: "/finance/assets", label: "Assets", icon: Gem },
+      { href: "/spending", label: "Spending", icon: ReceiptPoundSterling },
+      { href: "/subscriptions", label: "Subscriptions", icon: CreditCard },
+    ],
+  },
+  {
+    items: [
+      { href: "/diaries", label: "Diaries", icon: Film },
+      { href: "/goals", label: "Goals", icon: Target },
+      { href: "/plan", label: "Plan", icon: Compass },
+      { href: "/reports", label: "Reports", icon: BarChart2 },
+    ],
+  },
 ]
 
 function initialsFrom(email: string | null | undefined) {
@@ -75,24 +93,35 @@ export default function NavSidebar({ onClose }: { onClose?: () => void }) {
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
-        {navLinks.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href))
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onClose}
-              className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-                isActive
-                  ? "bg-accent/10 text-text"
-                  : "text-muted hover:bg-bg-hover hover:text-text"
-              }`}
-            >
-              <Icon size={16} className={isActive ? "text-accent" : ""} />
-              {label}
-            </Link>
-          )
-        })}
+        {navSections.map((section) => (
+          <div key={section.label ?? "start"} className="pb-2">
+            {section.label && (
+              <p className="px-3 pb-1 pt-3 text-[10px] font-medium uppercase tracking-[0.18em] text-muted">
+                {section.label}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {section.items.map(({ href, label, icon: Icon }) => {
+                const isActive = pathname === href || (href !== "/dashboard" && pathname.startsWith(href))
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={onClose}
+                    className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                      isActive
+                        ? "bg-accent/10 text-text"
+                        : "text-muted hover:bg-bg-hover hover:text-text"
+                    }`}
+                  >
+                    <Icon size={16} className={isActive ? "text-accent" : ""} />
+                    {label}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="space-y-1 px-3 pb-3">
