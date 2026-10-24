@@ -10,12 +10,12 @@ import { NetWorthChart, type NotableEvent } from "@/components/dashboard/NetWort
 import { CategoryBreakdownBar } from "@/components/dashboard/CategoryBreakdownBar";
 import { AssetsTable } from "@/components/dashboard/AssetsTable";
 import { NotableEventsManager } from "@/components/dashboard/NotableEventsManager";
-import { WeightManager, type WeightReading } from "@/components/dashboard/WeightManager";
+import type { WeightReading } from "@/components/dashboard/WeightManager";
+import { FitnessLink } from "@/components/dashboard/FitnessLink";
 import { KpiStrip } from "@/components/dashboard/KpiStrip";
 import { useCheckinDueLabel, useDashboardPrefs } from "@/components/dashboard/useDashboardPrefs";
 import { Card } from "@/components/ui/Card";
 import type { AccountMove, SeriesPoint } from "@/lib/dashboard-kpis";
-import { CardioSection } from "@/components/dashboard/CardioSection";
 
 interface SnapshotSummary {
   id: string;
@@ -54,6 +54,8 @@ interface DashboardClientProps {
   movesByDate?: Record<string, AccountMove[]>;
   monthlySubscriptionGbp?: number;
   activeSubscriptionCount?: number;
+  /** Dev preview only. The live dashboard loads this line from /api/training. */
+  fitnessSummary?: string;
 }
 
 function computeNetWorthFromValuations(
@@ -100,10 +102,10 @@ export function DashboardClient({
   movesByDate = {},
   monthlySubscriptionGbp = 0,
   activeSubscriptionCount = 0,
+  fitnessSummary,
 }: DashboardClientProps) {
   const { timeframe, setTimeframe, hideDebt, setHideDebt } = useDashboardPrefs();
   const [events, setEvents] = useState<NotableEvent[]>(initialEvents);
-  const [weightReadings, setWeightReadings] = useState<WeightReading[]>(initialWeightReadings);
 
   const accountById = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
@@ -245,7 +247,7 @@ export function DashboardClient({
             timeframe={timeframe}
             loading={false}
             events={events}
-            weightReadings={weightReadings}
+            weightReadings={initialWeightReadings}
             movesByDate={movesByDate}
             hideDebt={hideDebt}
             variant="hero"
@@ -253,9 +255,9 @@ export function DashboardClient({
         </div>
       </Card>
 
-      <CardioSection />
+      <FitnessLink summary={fitnessSummary} />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card className="flex flex-col">
           <h2 className="mb-5 font-display text-xl font-medium text-text">Asset mix</h2>
           <CategoryBreakdownBar accounts={accountSummaries} />
@@ -264,11 +266,6 @@ export function DashboardClient({
         <Card className="flex flex-col">
           <h2 className="mb-5 font-display text-xl font-medium text-text">Life events</h2>
           <NotableEventsManager events={events} onEventsChange={setEvents} />
-        </Card>
-
-        <Card className="flex flex-col">
-          <h2 className="mb-5 font-display text-xl font-medium text-text">Weight</h2>
-          <WeightManager readings={weightReadings} onReadingsChange={setWeightReadings} />
         </Card>
       </div>
 

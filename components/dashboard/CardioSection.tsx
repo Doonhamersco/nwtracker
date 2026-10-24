@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
 import { formatKm, formatPace, formatRaceTime } from "@/lib/strava/metrics";
 import { daysUntil, FITNESS_TEST_DATE, FITNESS_TEST_LABEL, londonToday } from "@/lib/training/dates";
 import type {
@@ -276,10 +277,8 @@ export function CardioSection({ initial }: { initial?: TrainingPayload }) {
   const testDate = data?.testDate ?? FITNESS_TEST_DATE;
 
   return (
-    <section
-      aria-labelledby="cardio-heading"
-      className="rounded-2xl border border-border bg-bg-card px-5 py-6 sm:px-8 sm:py-8"
-    >
+    <Card padding="hero">
+      <section aria-labelledby="cardio-heading">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted">Training</p>
@@ -332,6 +331,7 @@ export function CardioSection({ initial }: { initial?: TrainingPayload }) {
       )}
 
       {status === "ok" && data && <HevyStrip hevy={data.hevy} />}
-    </section>
+      </section>
+    </Card>
   );
 }
