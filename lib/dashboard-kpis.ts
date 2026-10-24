@@ -7,8 +7,11 @@ export interface SeriesPoint {
   takenAt: string;
   isoDate: string;
   netWorthGbp: number | null;
+  /** Account valuations only. Physical assets stay in physicalAssetsGbp. */
   assetsGbp: number | null;
   debtGbp: number | null;
+  /** Portion of netWorthGbp that came from physical assets. Omitted when none. */
+  physicalAssetsGbp?: number;
 }
 
 export interface AccountMove {
@@ -23,7 +26,14 @@ export interface DashboardSeriesInput {
     takenAt: string;
     netWorthGbp: number | null;
     isPartial: boolean;
+    /** Physical assets baked into this snapshot at check-in. */
+    physicalAssetsGbp?: number | null;
   }>;
+  /**
+   * Today's physical-asset total. Applied to the latest committed point only,
+   * matching withCurrentPhysicalAssets. Omit to keep each snapshot's stored amount.
+   */
+  currentPhysicalAssetsGbp?: number;
   valuations: Array<{
     snapshotId: string;
     accountId: string;
@@ -81,10 +91,23 @@ export function timeframeCutoff(timeframe: Timeframe, now = new Date()): Date | 
   return new Date(now.getTime() - span * DAY_MS);
 }
 
-export function worthOf(point: SeriesPoint, hideDebt: boolean): number | null {
+export function worthOf(
+  point: SeriesPoint,
+  hideDebt: boolean,
+  hideAssets = false
+): number | null {
   if (point.netWorthGbp === null && point.assetsGbp === null) return null;
   const net = point.netWorthGbp ?? (point.assetsGbp ?? 0) - (point.debtGbp ?? 0);
-  return hideDebt ? net + (point.debtGbp ?? 0) : net;
+  const withDebt = hideDebt ? net + (point.debtGbp ?? 0) : net;
+  if (!hideAssets || point.netWorthGbp === null) return withDebt;
+  return withDebt - (point.physicalAssetsGbp ?? 0);
+}
+
+/** Account assets plus physical assets, unless physical assets are hidden. */
+export function displayedAssetsGbp(point: SeriesPoint, hideAssets: boolean): number | null {
+  const physical = hideAssets ? 0 : (point.physicalAssetsGbp ?? 0);
+  if (point.assetsGbp === null && physical === 0) return null;
+  return (point.assetsGbp ?? 0) + physical;
 }
 
 export function buildDashboardSeries(input: DashboardSeriesInput): DashboardSeries {
@@ -104,6 +127,7 @@ export function buildDashboardSeries(input: DashboardSeriesInput): DashboardSeri
     .filter((snapshot) => !snapshot.isPartial)
     .slice()
     .sort((a, b) => parseTakenAt(a.takenAt) - parseTakenAt(b.takenAt));
+  const latestId = committed[committed.length - 1]?.id ?? null;
 
   const points: SeriesPoint[] = [];
   const movesByDate: Record<string, AccountMove[]> = {};
@@ -125,6 +149,10 @@ export function buildDashboardSeries(input: DashboardSeriesInput): DashboardSeri
     }
 
     const isoDate = isoDateFrom(snapshot.takenAt);
+    const physicalAssetsGbp =
+      snapshot.id === latestId && input.currentPhysicalAssetsGbp !== undefined
+        ? input.currentPhysicalAssetsGbp
+        : (snapshot.physicalAssetsGbp ?? 0);
     points.push({
       snapshotId: snapshot.id,
       takenAt: snapshot.takenAt,
@@ -132,6 +160,7 @@ export function buildDashboardSeries(input: DashboardSeriesInput): DashboardSeri
       netWorthGbp: snapshot.netWorthGbp,
       assetsGbp,
       debtGbp,
+      physicalAssetsGbp,
     });
 
     if (vals && previousVals) {
@@ -165,10 +194,14 @@ interface DatedWorth {
   t: number;
 }
 
-function datedWorth(points: SeriesPoint[], hideDebt: boolean): DatedWorth[] {
+function datedWorth(
+  points: SeriesPoint[],
+  hideDebt: boolean,
+  hideAssets: boolean
+): DatedWorth[] {
   return points
     .map((point) => {
-      const worth = worthOf(point, hideDebt);
+      const worth = worthOf(point, hideDebt, hideAssets);
       if (worth === null) return null;
       return { point, worth, t: parseTakenAt(point.takenAt) };
     })
@@ -202,9 +235,10 @@ export function rollingChange(
   points: SeriesPoint[],
   hideDebt: boolean,
   lookbackDays: number,
-  toleranceDays: number
+  toleranceDays: number,
+  hideAssets = false
 ): ChangeStat {
-  const rows = datedWorth(points, hideDebt);
+  const rows = datedWorth(points, hideDebt, hideAssets);
   if (rows.length === 0) return { delta: null, percent: null, spark: [] };
 
   const spark: number[] = [];

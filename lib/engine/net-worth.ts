@@ -69,14 +69,38 @@ export interface SnapshotWorth {
  * so the overview and the right-hand end of the chart follow current values
  * without rewriting earlier months.
  */
+export function findLatestCommittedSnapshot<T extends SnapshotWorth>(
+  snapshots: T[]
+): T | null {
+  return (
+    snapshots
+      .filter((snapshot) => !snapshot.isPartial && snapshot.netWorthGbp !== null)
+      .slice()
+      .sort((a, b) => takenAtMs(b.takenAt) - takenAtMs(a.takenAt))[0] ?? null
+  );
+}
+
+/**
+ * Physical-asset pounds sitting inside netWorthGbp after withCurrentPhysicalAssets.
+ * The latest committed point holds today's total; earlier points hold the amount
+ * stored at check-in.
+ */
+export function physicalAssetsInDisplayedWorth(
+  snapshot: Pick<SnapshotWorth, "id" | "physicalAssetsGbp">,
+  latestCommittedId: string | null,
+  currentPhysicalAssetsGbp: number
+): number {
+  if (latestCommittedId !== null && snapshot.id === latestCommittedId) {
+    return currentPhysicalAssetsGbp;
+  }
+  return snapshot.physicalAssetsGbp ?? 0;
+}
+
 export function withCurrentPhysicalAssets<T extends SnapshotWorth>(
   snapshots: T[],
   currentPhysicalAssetsGbp: number
 ): T[] {
-  const latest = snapshots
-    .filter((snapshot) => !snapshot.isPartial && snapshot.netWorthGbp !== null)
-    .slice()
-    .sort((a, b) => takenAtMs(b.takenAt) - takenAtMs(a.takenAt))[0];
+  const latest = findLatestCommittedSnapshot(snapshots);
   if (!latest || latest.netWorthGbp === null) return snapshots;
 
   const included = latest.physicalAssetsGbp ?? 0;

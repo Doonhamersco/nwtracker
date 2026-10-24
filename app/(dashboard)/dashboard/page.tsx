@@ -120,6 +120,7 @@ export default async function DashboardPage() {
     snapshots: displayedSnapshots,
     valuations: valuationHistory,
     accounts: accountRows,
+    currentPhysicalAssetsGbp: physicalAssetsGbp,
   });
 
   return (

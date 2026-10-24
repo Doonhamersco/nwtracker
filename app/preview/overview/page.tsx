@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { PreviewFrame } from "@/app/preview/PreviewFrame";
 import { buildDashboardSeries } from "@/lib/dashboard-kpis";
+import { withCurrentPhysicalAssets } from "@/lib/engine/net-worth";
 import { previewTrainingConnected } from "@/lib/strava/preview";
 import { fitnessSummaryLine } from "@/lib/training/summary";
 
@@ -27,16 +28,18 @@ function valuation(id: string, accountId: string, value: number) {
 export default function OverviewPreviewPage() {
   if (process.env.NODE_ENV === "production") notFound();
 
-  const snapshots = [
-    { id: "s1", takenAt: "2026-05-01T09:00:00.000Z", netWorthGbp: 98000, isPartial: false, notes: null },
-    { id: "s2", takenAt: "2026-06-01T09:00:00.000Z", netWorthGbp: 101000, isPartial: false, notes: null },
-    { id: "s3", takenAt: "2026-07-01T09:00:00.000Z", netWorthGbp: 104500, isPartial: false, notes: null },
-    { id: "s4", takenAt: "2026-08-01T09:00:00.000Z", netWorthGbp: 107200, isPartial: false, notes: null },
-    { id: "s5", takenAt: "2026-09-01T09:00:00.000Z", netWorthGbp: 110400, isPartial: false, notes: null },
-    { id: "s6", takenAt: "2026-10-01T09:00:00.000Z", netWorthGbp: 113800, isPartial: false, notes: null },
+  const accountSnapshots = [
+    { id: "s1", takenAt: "2026-05-01T09:00:00.000Z", netWorthGbp: 98000, physicalAssetsGbp: 0, isPartial: false, notes: null },
+    { id: "s2", takenAt: "2026-06-01T09:00:00.000Z", netWorthGbp: 101000, physicalAssetsGbp: 0, isPartial: false, notes: null },
+    { id: "s3", takenAt: "2026-07-01T09:00:00.000Z", netWorthGbp: 104500, physicalAssetsGbp: 0, isPartial: false, notes: null },
+    { id: "s4", takenAt: "2026-08-01T09:00:00.000Z", netWorthGbp: 107200, physicalAssetsGbp: 0, isPartial: false, notes: null },
+    { id: "s5", takenAt: "2026-09-01T09:00:00.000Z", netWorthGbp: 110400, physicalAssetsGbp: 0, isPartial: false, notes: null },
+    { id: "s6", takenAt: "2026-10-01T09:00:00.000Z", netWorthGbp: 113800, physicalAssetsGbp: 0, isPartial: false, notes: null },
   ];
+  const physicalAssetsGbp = 12500;
+  const snapshots = withCurrentPhysicalAssets(accountSnapshots, physicalAssetsGbp);
 
-  const seriesInput = snapshots.flatMap((snapshot) => {
+  const seriesInput = accountSnapshots.flatMap((snapshot) => {
     const scale = snapshot.netWorthGbp / 113800;
     return [
       { snapshotId: snapshot.id, accountId: "isa", valueGbp: Math.round(42000 * scale) },
@@ -48,6 +51,7 @@ export default function OverviewPreviewPage() {
     snapshots,
     valuations: seriesInput,
     accounts,
+    currentPhysicalAssetsGbp: physicalAssetsGbp,
   });
 
   return (
@@ -79,6 +83,9 @@ export default function OverviewPreviewPage() {
         monthlySubscriptionGbp={86}
         activeSubscriptionCount={4}
         fitnessSummary={fitnessSummaryLine(previewTrainingConnected())}
+        physicalAssetsGbp={physicalAssetsGbp}
+        previousPhysicalAssetsGbp={0}
+        physicalHoldings={[{ category: "vehicle", valueGbp: physicalAssetsGbp }]}
       />
     </PreviewFrame>
   );

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildDashboardSeries,
   checkinDueLabel,
+  displayedAssetsGbp,
   levelStat,
   rollingChange,
   worthOf,
@@ -84,6 +85,54 @@ describe("buildDashboardSeries", () => {
 
     expect(series.points.map((item) => item.snapshotId)).toEqual(["a", "b"]);
     expect(series.movesByDate["2026-02-02"]).toHaveLength(12);
+  });
+
+  it("keeps physical assets beside account assets and uses today's total on the latest point", () => {
+    const series = buildDashboardSeries({
+      snapshots: [
+        {
+          id: "a",
+          takenAt: "2026-01-02 12:00:00",
+          netWorthGbp: 8000,
+          physicalAssetsGbp: null,
+          isPartial: false,
+        },
+        {
+          id: "b",
+          takenAt: "2026-02-02 12:00:00",
+          netWorthGbp: 10000,
+          physicalAssetsGbp: 1000,
+          isPartial: false,
+        },
+      ],
+      valuations: [
+        { snapshotId: "a", accountId: "isa", valueGbp: 9000 },
+        { snapshotId: "a", accountId: "loan", valueGbp: 1000 },
+        { snapshotId: "b", accountId: "isa", valueGbp: 10000 },
+        { snapshotId: "b", accountId: "loan", valueGbp: 1500 },
+      ],
+      accounts,
+      currentPhysicalAssetsGbp: 1500,
+    });
+
+    const older = series.points[0];
+    const latest = series.points[1];
+    expect(older?.physicalAssetsGbp).toBe(0);
+    expect(older?.assetsGbp).toBe(9000);
+    expect(latest?.assetsGbp).toBe(10000);
+    expect(latest?.physicalAssetsGbp).toBe(1500);
+    expect(latest?.netWorthGbp).toBe(10000);
+
+    const accountAssets = latest?.assetsGbp ?? 0;
+    const physical = latest?.physicalAssetsGbp ?? 0;
+    expect(displayedAssetsGbp(latest!, false)).toBe(accountAssets + physical);
+    expect(worthOf(latest!, false, false)).toBe(10000);
+    expect(worthOf(latest!, false, false)! - worthOf(latest!, false, true)!).toBe(physical);
+
+    expect(displayedAssetsGbp(latest!, true)).toBe(accountAssets);
+    expect(worthOf(latest!, false, true)).toBe(8500);
+    expect(worthOf(latest!, true, true)).toBe(10000);
+    expect(worthOf(latest!, true, false)).toBe(11500);
   });
 });
 

@@ -6,6 +6,7 @@ import { ChangeIndicator } from "@/components/ui/ChangeIndicator";
 import { Sparkline } from "@/components/metrics/Sparkline";
 import {
   formatSignedPercent,
+  displayedAssetsGbp,
   levelStat,
   rollingChange,
   sliceByTimeframe,
@@ -19,6 +20,7 @@ interface KpiStripProps {
   points: SeriesPoint[];
   timeframe: Timeframe;
   hideDebt: boolean;
+  hideAssets?: boolean;
   monthlySubscriptionGbp: number;
   activeSubscriptionCount: number;
 }
@@ -124,13 +126,14 @@ export function KpiStrip({
   points,
   timeframe,
   hideDebt,
+  hideAssets = false,
   monthlySubscriptionGbp,
   activeSubscriptionCount,
 }: KpiStripProps) {
-  const month = rollingChange(points, hideDebt, 30, 21);
-  const year = rollingChange(points, hideDebt, 365, 46);
+  const month = rollingChange(points, hideDebt, 30, 21, hideAssets);
+  const year = rollingChange(points, hideDebt, 365, 46, hideAssets);
   const windowed = sliceByTimeframe(points, timeframe);
-  const assets = levelStat(windowed.map((point) => point.assetsGbp));
+  const assets = levelStat(windowed.map((point) => displayedAssetsGbp(point, hideAssets)));
   const debt = levelStat(windowed.map((point) => point.debtGbp));
   const subscriptions: LevelStat = {
     latest: monthlySubscriptionGbp,
