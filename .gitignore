@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local database — contains sensitive financial data
 /data
+
+# Rotated Strava refresh token. The bootstrap value stays in the environment.
+strava-oauth.json
