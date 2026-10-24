@@ -1,19 +1,20 @@
 import { auth } from "@/lib/auth"
+import { proxyDecision } from "@/lib/auth/proxy-access"
 
 export default auth((req) => {
-  const { nextUrl } = req
-  const isLoggedIn = !!req.auth?.user
-  const isDevPreview =
-    process.env.NODE_ENV !== "production" && nextUrl.pathname.startsWith("/preview")
-  const isAuthRoute =
-    nextUrl.pathname.startsWith("/login") ||
-    nextUrl.pathname.startsWith("/api/auth") ||
-    nextUrl.pathname.startsWith("/api/hevy") ||
-    isDevPreview
+  const decision = proxyDecision({
+    pathname: req.nextUrl.pathname,
+    isLoggedIn: !!req.auth?.user,
+    authorization: req.headers.get("authorization"),
+    hevySyncToken: process.env.HEVY_SYNC_TOKEN,
+    nodeEnv: process.env.NODE_ENV,
+  })
 
-  if (!isLoggedIn && !isAuthRoute) {
-    return Response.redirect(new URL("/login", nextUrl))
+  if (decision === "allow") return
+  if (decision === "unauthorized") {
+    return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
+  return Response.redirect(new URL("/login", req.nextUrl))
 })
 
 export const config = {

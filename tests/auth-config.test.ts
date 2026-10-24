@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect } from "vitest"
+import { proxyDecision } from "@/lib/auth/proxy-access"
 
 /**
  * Tests for the auth configuration logic.
@@ -60,37 +61,83 @@ describe("auth signIn callback logic", () => {
   })
 })
 
-describe("middleware route protection logic", () => {
-  function shouldRedirectToLogin(
-    pathname: string,
-    isLoggedIn: boolean
-  ): boolean {
-    const isAuthRoute =
-      pathname.startsWith("/login") ||
-      pathname.startsWith("/api/auth") ||
-      pathname.startsWith("/api/hevy")
-
-    return !isLoggedIn && !isAuthRoute
-  }
-
+describe("proxy route protection", () => {
   it("redirects unauthenticated users from protected routes", () => {
-    expect(shouldRedirectToLogin("/dashboard", false)).toBe(true)
-    expect(shouldRedirectToLogin("/assets", false)).toBe(true)
-    expect(shouldRedirectToLogin("/fitness", false)).toBe(true)
+    expect(proxyDecision({ pathname: "/dashboard", isLoggedIn: false })).toBe("redirect")
+    expect(proxyDecision({ pathname: "/assets", isLoggedIn: false })).toBe("redirect")
+    expect(proxyDecision({ pathname: "/fitness", isLoggedIn: false })).toBe("redirect")
+    expect(proxyDecision({ pathname: "/spending", isLoggedIn: false })).toBe("redirect")
+    expect(proxyDecision({ pathname: "/metrics", isLoggedIn: false })).toBe("redirect")
+    expect(proxyDecision({ pathname: "/api/hevy/stats", isLoggedIn: false })).toBe("redirect")
+    expect(proxyDecision({ pathname: "/api/hevy/sync-weights", isLoggedIn: false })).toBe("redirect")
   })
 
-  it("does not redirect authenticated users from protected routes", () => {
-    expect(shouldRedirectToLogin("/dashboard", true)).toBe(false)
-    expect(shouldRedirectToLogin("/assets", true)).toBe(false)
+  it("allows authenticated users through protected routes", () => {
+    expect(proxyDecision({ pathname: "/dashboard", isLoggedIn: true })).toBe("allow")
+    expect(proxyDecision({ pathname: "/api/hevy/sync", isLoggedIn: true })).toBe("allow")
+    expect(proxyDecision({ pathname: "/api/hevy/stats", isLoggedIn: true })).toBe("allow")
   })
 
-  it("does not redirect anyone from auth routes", () => {
-    expect(shouldRedirectToLogin("/login", false)).toBe(false)
-    expect(shouldRedirectToLogin("/api/auth/signin", false)).toBe(false)
-    expect(shouldRedirectToLogin("/api/auth/callback/google", false)).toBe(false)
+  it("allows login and auth routes without a session", () => {
+    expect(proxyDecision({ pathname: "/login", isLoggedIn: false })).toBe("allow")
+    expect(proxyDecision({ pathname: "/api/auth/signin", isLoggedIn: false })).toBe("allow")
+    expect(proxyDecision({ pathname: "/api/auth/callback/google", isLoggedIn: false })).toBe("allow")
   })
 
-  it("does not redirect anyone from hevy API routes", () => {
-    expect(shouldRedirectToLogin("/api/hevy/sync", false)).toBe(false)
+  it("rejects anonymous Hevy sync unless the cron bearer matches", () => {
+    expect(proxyDecision({ pathname: "/api/hevy/sync", isLoggedIn: false })).toBe("unauthorized")
+    expect(
+      proxyDecision({
+        pathname: "/api/hevy/sync",
+        isLoggedIn: false,
+        authorization: "Bearer wrong",
+        hevySyncToken: "cron-secret",
+      })
+    ).toBe("unauthorized")
+    expect(
+      proxyDecision({
+        pathname: "/api/hevy/sync",
+        isLoggedIn: false,
+        authorization: "Bearer cron-secret",
+        hevySyncToken: "cron-secret",
+      })
+    ).toBe("allow")
+    expect(
+      proxyDecision({
+        pathname: "/api/hevy/sync",
+        isLoggedIn: false,
+        authorization: "Bearer cron-secret",
+      })
+    ).toBe("unauthorized")
+  })
+
+  it("lets the import route through so it can check its own bearer", () => {
+    expect(
+      proxyDecision({ pathname: "/api/import/transactions", isLoggedIn: false })
+    ).toBe("allow")
+  })
+
+  it("keeps dev layout previews open and closes them in production", () => {
+    expect(
+      proxyDecision({
+        pathname: "/preview/fitness",
+        isLoggedIn: false,
+        nodeEnv: "development",
+      })
+    ).toBe("allow")
+    expect(
+      proxyDecision({
+        pathname: "/preview/spending",
+        isLoggedIn: false,
+        nodeEnv: "test",
+      })
+    ).toBe("allow")
+    expect(
+      proxyDecision({
+        pathname: "/preview/overview",
+        isLoggedIn: false,
+        nodeEnv: "production",
+      })
+    ).toBe("redirect")
   })
 })

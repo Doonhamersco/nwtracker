@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { bearerMatches } from "@/lib/auth/bearer";
 import { hevyClient, HevyApiError } from "@/lib/hevy/client";
 import { fillMissingHevyReadingsForLatestSnapshot } from "@/lib/services/checkin";
 
@@ -9,8 +11,22 @@ export const dynamic = "force-dynamic";
  *
  * Verifies the API key, fetches a summary, and attaches Hevy life-metric
  * readings to the latest snapshot when they are missing.
+ * Requires a logged-in session, or Authorization: Bearer HEVY_SYNC_TOKEN
+ * for cron. The token is disabled when that env var is unset.
  */
-export async function POST() {
+export async function POST(req: Request) {
+  const session = await auth();
+  const cronAuthorised = bearerMatches(
+    req.headers.get("authorization"),
+    process.env.HEVY_SYNC_TOKEN
+  );
+  if (!session?.user && !cronAuthorised) {
+    return NextResponse.json(
+      { ok: false, error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
   try {
     const [userInfo, count, stats] = await Promise.all([
       hevyClient.getUserInfo(),
