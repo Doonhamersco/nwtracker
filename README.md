@@ -52,6 +52,8 @@ curl -sS -X POST https://nwtracker.fly.dev/api/import/transactions \
 
 A successful response looks like `{ "inserted": 2, "skipped": 0, "balanceCheck": { "ok": false } }`. `balanceCheck.ok` is true when the opening balance plus every signed amount matches the closing balance and each running balance. Dates may also be written as `01 Sep 2026`. Open `/spending` after the import.
 
+Signed-in users can upload a Chase UK statement PDF on the Spending page. The server reads the PDF, shows a preview (date, description, amount, in or out), then saves through this same import, so uploading a statement again skips lines that are already stored.
+
 ## Getting Started
 
 First, run the development server:

@@ -9,6 +9,7 @@ import { formatGbp, formatPct } from "@/lib/spending/money"
 import type { MerchantSpend, SpendingReport } from "@/lib/spending/types"
 import { RecurringPanel } from "./RecurringPanel"
 import { SpendingCharts } from "./SpendingCharts"
+import { StatementImport } from "./StatementImport"
 import { TransactionsTable } from "./TransactionsTable"
 
 export function SpendingClient({
@@ -68,12 +69,15 @@ export function SpendingClient({
       {report.transactions.length === 0 && report.trend.length === 0 ? (
         <Card>
           <p className="text-sm text-muted">
-            No transactions yet. Import a statement with the curl command in the README,
-            then come back here.
+            No transactions yet. Upload a Chase UK statement PDF to add them.
           </p>
+          <div className="mt-4">
+            <StatementImport prominent onImported={refresh} />
+          </div>
         </Card>
       ) : (
         <>
+          <StatementImport onImported={refresh} />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <Stat
               label="Spend"
