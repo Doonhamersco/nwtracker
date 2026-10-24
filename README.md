@@ -1,5 +1,57 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Importing bank transactions
+
+`POST /api/import/transactions` is exempt from the login redirect and instead requires `Authorization: Bearer` matching the `IMPORT_API_TOKEN` environment variable. The endpoint responds with 401 when the variable is unset, missing, or wrong. Rows are inserted in one SQLite transaction and skipped when the same statement line is imported again.
+
+Set the token (production):
+
+```bash
+fly secrets set IMPORT_API_TOKEN="$(openssl rand -hex 32)" -a nwtracker
+```
+
+Optional cron access for `POST /api/hevy/sync` uses a separate secret. Without it, that route requires a logged-in session:
+
+```bash
+fly secrets set HEVY_SYNC_TOKEN="$(openssl rand -hex 32)" -a nwtracker
+```
+
+Import a statement (creates a CASH account named Chase UK, institution Chase UK, when that account does not already exist):
+
+```bash
+curl -sS -X POST https://nwtracker.fly.dev/api/import/transactions \
+  -H "Authorization: Bearer $IMPORT_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "account": "Chase UK",
+    "statementMonth": "2026-09",
+    "openingBalance": 230.76,
+    "closingBalance": 507.11,
+    "transactions": [
+      {
+        "date": "2026-09-01",
+        "description": "From HARGREAVES LANSDOW - HLAM CLIENT ACC",
+        "type": "Payment",
+        "amount_gbp": 150.00,
+        "direction": "in",
+        "balance_gbp": 380.76,
+        "category": "Income/Transfers in"
+      },
+      {
+        "date": "2026-09-02",
+        "description": "ALDI",
+        "type": "Purchase",
+        "amount_gbp": 12.12,
+        "direction": "out",
+        "balance_gbp": 362.76,
+        "category": "Groceries"
+      }
+    ]
+  }'
+```
+
+A successful response looks like `{ "inserted": 2, "skipped": 0, "balanceCheck": { "ok": false } }`. `balanceCheck.ok` is true when the opening balance plus every signed amount matches the closing balance and each running balance. Dates may also be written as `01 Sep 2026`. Open `/spending` after the import.
+
 ## Getting Started
 
 First, run the development server:
