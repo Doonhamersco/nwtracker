@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { formatKm, formatPace, formatRaceTime } from "@/lib/strava/metrics";
@@ -8,11 +9,24 @@ import { daysUntil, FITNESS_TEST_DATE, FITNESS_TEST_LABEL, londonToday } from "@
 import type {
   BestEffort,
   CardioSummary,
+  MonthDistance,
   OnTrackStatus,
   PaceTrend,
   TrainingPayload,
   WeekPace,
 } from "@/lib/training/types";
+
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function monthTick(month: string): string {
+  const index = Number(month.slice(5, 7)) - 1;
+  return MONTH_NAMES[index] ?? month;
+}
+
+function monthTitle(month: string): string {
+  const year = month.slice(0, 4);
+  return `${monthTick(month)} ${year}`;
+}
 
 function formatShortDate(iso: string, withYear = false): string {
   const [year, month, day] = iso.split("-").map(Number);
@@ -134,6 +148,62 @@ function PaceChart({ weeks }: { weeks: WeekPace[] }) {
   );
 }
 
+function MonthlyDistanceChart({ months }: { months: MonthDistance[] }) {
+  const data = months.map((entry) => ({
+    ...entry,
+    label: monthTick(entry.month),
+    title: monthTitle(entry.month),
+  }));
+
+  return (
+    <div>
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted">Monthly distance</p>
+        <p className="text-xs text-muted">Last 12 months</p>
+      </div>
+      <div
+        className="h-36 w-full"
+        role="img"
+        aria-label="Kilometres run in each of the last 12 calendar months."
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+            <XAxis
+              dataKey="label"
+              tick={{ fill: "var(--nw-muted)", fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              interval={0}
+            />
+            <YAxis hide />
+            <Tooltip
+              cursor={{ fill: "var(--nw-border)" }}
+              content={({ active, payload }) => {
+                if (!active || !payload || payload.length === 0) return null;
+                const point = payload[0]?.payload as (typeof data)[number] | undefined;
+                if (!point) return null;
+                return (
+                  <div className="rounded-lg border border-border bg-bg-card px-2.5 py-1.5 text-xs">
+                    <p className="text-muted">{point.title}</p>
+                    <p className="font-mono tabular-nums text-text">{formatKm(point.distanceKm)} km</p>
+                  </div>
+                );
+              }}
+            />
+            <Bar
+              dataKey="distanceKm"
+              fill="var(--nw-accent)"
+              radius={[3, 3, 0, 0]}
+              maxBarSize={28}
+              isAnimationActive={false}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 function SummaryBody({ summary }: { summary: CardioSummary }) {
   const sessionWord = summary.weeklySessions === 1 ? "run" : "runs";
   const recentWord = summary.runsLast7Days === 1 ? "run" : "runs";
@@ -174,6 +244,7 @@ function SummaryBody({ summary }: { summary: CardioSummary }) {
       </div>
 
       <PaceChart weeks={summary.weeklyPace} />
+      <MonthlyDistanceChart months={summary.monthlyDistance} />
 
       <div>
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted">Recent runs</p>

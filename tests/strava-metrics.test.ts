@@ -216,7 +216,38 @@ describe("summarizeCardio", () => {
     expect(summary.onTrack).toBe("off_track");
     expect(summary.recentRuns).toEqual([]);
     expect(summary.weeklyPace).toHaveLength(8);
+    expect(summary.monthlyDistance).toHaveLength(12);
+    expect(summary.monthlyDistance.every((month) => month.distanceKm === 0)).toBe(true);
     expect(summary.bestFiveK).toBeNull();
+  });
+
+  it("totals kilometres for the last 12 calendar months and leaves gaps at zero", () => {
+    const summary = summarizeCardio(
+      [
+        run({ id: 1, date: "2026-10-22", distanceMeters: 5000 }),
+        run({ id: 2, date: "2026-10-02", sport: "trail", distanceMeters: 10_000 }),
+        run({ id: 3, date: "2025-11-03", distanceMeters: 3000 }),
+        run({ id: 4, date: "2025-10-31", distanceMeters: 8000 }),
+      ],
+      NOW,
+    );
+
+    expect(summary.monthlyDistance).toHaveLength(12);
+    expect(summary.monthlyDistance[0]?.month).toBe("2025-11");
+    expect(summary.monthlyDistance[0]?.distanceKm).toBeCloseTo(3);
+    expect(summary.monthlyDistance.at(-1)?.month).toBe("2026-10");
+    expect(summary.monthlyDistance.at(-1)?.distanceKm).toBeCloseTo(15);
+    expect(summary.monthlyDistance.find((month) => month.month === "2026-01")?.distanceKm).toBe(0);
+    expect(summary.monthlyDistance.some((month) => month.month === "2025-10")).toBe(false);
+  });
+
+  it("keeps best efforts inside six months while older runs still count toward monthly distance", () => {
+    const summary = summarizeCardio(
+      [run({ id: 1, date: "2026-01-15", distanceMeters: 5000, movingTimeSeconds: 1200 })],
+      NOW,
+    );
+    expect(summary.bestFiveK).toBeNull();
+    expect(summary.monthlyDistance.find((month) => month.month === "2026-01")?.distanceKm).toBeCloseTo(5);
   });
 });
 
