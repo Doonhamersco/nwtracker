@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { bearerMatches } from "@/lib/auth/bearer";
 import { importTransactions } from "@/lib/services/transactions";
 import { importTransactionsSchema } from "@/lib/validators/transactions";
+import { resolveImportTarget } from "@/lib/users/import-target";
+import { runAsUser } from "@/lib/users/context";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +38,22 @@ export async function POST(req: Request) {
     );
   }
 
+  let target: string;
   try {
-    const result = importTransactions(parsed.data);
+    target = resolveImportTarget(parsed.data.userEmail);
+  } catch {
+    return NextResponse.json({ error: "User is not on the invite list" }, { status: 403 });
+  }
+
+  try {
+    const statement = {
+      account: parsed.data.account,
+      statementMonth: parsed.data.statementMonth,
+      openingBalance: parsed.data.openingBalance,
+      closingBalance: parsed.data.closingBalance,
+      transactions: parsed.data.transactions,
+    };
+    const result = runAsUser(target, () => importTransactions(statement));
     return NextResponse.json({
       inserted: result.inserted,
       skipped: result.skipped,

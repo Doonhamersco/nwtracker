@@ -4,20 +4,18 @@ import path from "path";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db/client";
 import { files, fileLinkTypeEnum } from "@/db/schema";
+import { activeDataDir } from "@/lib/users/context";
 
 export type FileRow = typeof files.$inferSelect;
 export type FileLinkType = (typeof fileLinkTypeEnum)[number];
 
-function getDataDir(): string {
-  if (process.env.DATA_DIR) return process.env.DATA_DIR;
-  // Keep uploads on the same volume as SQLite so they survive deploys.
-  const dbPath =
-    process.env.DB_PATH ?? path.join(process.cwd(), "data", "nwtracker.db");
-  return path.dirname(dbPath);
-}
-
 function resolveStoragePath(relativePath: string): string {
-  return path.join(getDataDir(), relativePath);
+  const root = path.resolve(activeDataDir());
+  const absolute = path.resolve(root, relativePath);
+  if (absolute !== root && !absolute.startsWith(root + path.sep)) {
+    throw new Error("Invalid storage path");
+  }
+  return absolute;
 }
 
 export interface SaveFileInput {
@@ -30,6 +28,13 @@ export interface SaveFileInput {
 
 export function saveFile(input: SaveFileInput): FileRow {
   const id = randomUUID();
+  if (
+    input.displayName.includes("..") ||
+    input.displayName.includes("/") ||
+    input.displayName.includes("\\")
+  ) {
+    throw new Error("Invalid storage path");
+  }
   const storagePath = path.join("files", id, input.displayName);
   const absolutePath = resolveStoragePath(storagePath);
 

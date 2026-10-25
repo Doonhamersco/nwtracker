@@ -8,7 +8,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Upload } from "@aws-sdk/lib-storage";
 import { Readable } from "stream";
-import { isDiaryObjectKey } from "@/lib/r2-keys";
+import { scopedDiaryObjectKey } from "@/lib/users/diary-access";
 
 export { isDiaryObjectKey, diaryVideoKey, diaryThumbKey } from "@/lib/r2-keys";
 
@@ -89,15 +89,19 @@ export async function ensureR2Cors(): Promise<void> {
   }
 }
 
+export function ownedDiaryKey(key: string, purpose: "read" | "write"): string {
+  return scopedDiaryObjectKey(key, purpose);
+}
+
 export async function presignPutUrl(key: string, expiresIn = 900): Promise<string> {
-  if (!isDiaryObjectKey(key)) throw new Error("Invalid object key");
+  const owned = scopedDiaryObjectKey(key, "write");
   await ensureR2Cors();
   const { client, bucket } = getClient();
   return getSignedUrl(
     client,
     new PutObjectCommand({
       Bucket: bucket,
-      Key: key,
+      Key: owned,
       ContentType: "application/octet-stream",
     }),
     { expiresIn }
@@ -105,18 +109,25 @@ export async function presignPutUrl(key: string, expiresIn = 900): Promise<strin
 }
 
 export async function presignGetUrl(key: string, expiresIn = 900): Promise<string> {
-  if (!isDiaryObjectKey(key)) throw new Error("Invalid object key");
+  const owned = scopedDiaryObjectKey(key, "read");
   await ensureR2Cors();
   const { client, bucket } = getClient();
   return getSignedUrl(
     client,
-    new GetObjectCommand({ Bucket: bucket, Key: key }),
+    new GetObjectCommand({ Bucket: bucket, Key: owned }),
     { expiresIn }
   );
 }
 
 export async function deleteDiaryObjects(keys: string[]): Promise<void> {
-  const valid = keys.filter((k) => isDiaryObjectKey(k));
+  const valid: string[] = [];
+  for (const key of keys) {
+    try {
+      valid.push(scopedDiaryObjectKey(key, "read"));
+    } catch {
+      console.error("[r2] skipped an object key outside the signed-in user");
+    }
+  }
   if (valid.length === 0) return;
   const { client, bucket } = getClient();
   await client.send(
@@ -131,14 +142,14 @@ export async function uploadObjectStream(
   key: string,
   body: ReadableStream<Uint8Array>
 ): Promise<void> {
-  if (!isDiaryObjectKey(key)) throw new Error("Invalid object key");
+  const owned = scopedDiaryObjectKey(key, "write");
   const { client, bucket } = getClient();
   const nodeStream = Readable.fromWeb(body as Parameters<typeof Readable.fromWeb>[0]);
   const upload = new Upload({
     client,
     params: {
       Bucket: bucket,
-      Key: key,
+      Key: owned,
       Body: nodeStream,
       ContentType: "application/octet-stream",
     },
@@ -149,9 +160,9 @@ export async function uploadObjectStream(
 }
 
 export async function getObjectBytes(key: string): Promise<Uint8Array> {
-  if (!isDiaryObjectKey(key)) throw new Error("Invalid object key");
+  const owned = scopedDiaryObjectKey(key, "read");
   const { client, bucket } = getClient();
-  const obj = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  const obj = await client.send(new GetObjectCommand({ Bucket: bucket, Key: owned }));
   if (!obj.Body) throw new Error("Empty object");
   return new Uint8Array(await obj.Body.transformToByteArray());
 }

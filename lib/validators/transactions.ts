@@ -31,6 +31,7 @@ export const importTransactionsSchema = z.object({
   openingBalance: z.number().optional(),
   closingBalance: z.number().optional(),
   transactions: z.array(importTransactionRowSchema).min(1).max(5000),
+  userEmail: z.string().trim().email().optional(),
 });
 
 export const updateTransactionSchema = z

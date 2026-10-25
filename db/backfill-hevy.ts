@@ -12,6 +12,7 @@ import { and, eq, gte, inArray, lt } from "drizzle-orm";
 import { db } from "./client";
 import { lifeMetricDefinitions, lifeMetricReadings, snapshots } from "./schema";
 import { hevyClient } from "../lib/hevy/client";
+import { enterOwnerIfMigrated } from "../lib/users/context";
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,7 @@ function pad2(n: number): string {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
+  enterOwnerIfMigrated();
   console.log("Fetching Hevy metric definitions…");
 
   const hevyMetrics = await db

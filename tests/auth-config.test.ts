@@ -1,48 +1,90 @@
-import { describe, it, expect } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import { proxyDecision } from "@/lib/auth/proxy-access"
-
-/**
- * Tests for the auth configuration logic.
- * Extracts the pure email-checking logic from lib/auth.ts signIn callback.
- */
-
-function isEmailAllowed(userEmail: string | null | undefined, allowedEmail: string | undefined): boolean {
-  if (!allowedEmail) return false
-  return userEmail === allowedEmail
-}
+import { isEmailAllowed, ownerEmail, userIdFromEmail } from "@/lib/users/identity"
+import { stampUserHeader } from "@/lib/users/headers"
+import { resolveImportTarget } from "@/lib/users/import-target"
 
 function isAuthorized(authSession: { user?: unknown } | null): boolean {
   return !!authSession?.user
 }
 
 describe("auth signIn callback logic", () => {
+  const previous = {
+    ALLOWED_EMAIL: process.env.ALLOWED_EMAIL,
+    ALLOWED_EMAILS: process.env.ALLOWED_EMAILS,
+  }
+
+  afterEach(() => {
+    if (previous.ALLOWED_EMAIL === undefined) delete process.env.ALLOWED_EMAIL
+    else process.env.ALLOWED_EMAIL = previous.ALLOWED_EMAIL
+    if (previous.ALLOWED_EMAILS === undefined) delete process.env.ALLOWED_EMAILS
+    else process.env.ALLOWED_EMAILS = previous.ALLOWED_EMAILS
+  })
+
   describe("isEmailAllowed", () => {
-    it("returns false when ALLOWED_EMAIL is not set", () => {
-      expect(isEmailAllowed("user@example.com", undefined)).toBe(false)
+    it("returns false when no invite list is set", () => {
+      delete process.env.ALLOWED_EMAIL
+      delete process.env.ALLOWED_EMAILS
+      expect(isEmailAllowed("user@example.com")).toBe(false)
     })
 
-    it("returns false when ALLOWED_EMAIL is empty string", () => {
-      expect(isEmailAllowed("user@example.com", "")).toBe(false)
+    it("returns false when ALLOWED_EMAIL is empty", () => {
+      process.env.ALLOWED_EMAIL = "  "
+      delete process.env.ALLOWED_EMAILS
+      expect(isEmailAllowed("user@example.com")).toBe(false)
     })
 
-    it("returns true when email matches ALLOWED_EMAIL", () => {
-      expect(isEmailAllowed("owner@example.com", "owner@example.com")).toBe(true)
+    it("keeps ALLOWED_EMAIL working and ignores letter case", () => {
+      process.env.ALLOWED_EMAIL = "Owner@Example.com"
+      delete process.env.ALLOWED_EMAILS
+      expect(isEmailAllowed("owner@example.com")).toBe(true)
+      expect(isEmailAllowed("stranger@example.com")).toBe(false)
     })
 
-    it("returns false when email does not match ALLOWED_EMAIL", () => {
-      expect(isEmailAllowed("stranger@example.com", "owner@example.com")).toBe(false)
+    it("allows every address in ALLOWED_EMAILS and unions ALLOWED_EMAIL", () => {
+      process.env.ALLOWED_EMAIL = "owner@example.com"
+      process.env.ALLOWED_EMAILS = "dad@example.com, , guest@example.com"
+      expect(isEmailAllowed("dad@example.com")).toBe(true)
+      expect(isEmailAllowed("Guest@Example.com")).toBe(true)
+      expect(isEmailAllowed("owner@example.com")).toBe(true)
+      expect(isEmailAllowed("stranger@example.com")).toBe(false)
     })
 
-    it("returns false when user email is null", () => {
-      expect(isEmailAllowed(null, "owner@example.com")).toBe(false)
+    it("returns false when the user email is missing", () => {
+      process.env.ALLOWED_EMAIL = "owner@example.com"
+      expect(isEmailAllowed(null)).toBe(false)
+      expect(isEmailAllowed(undefined)).toBe(false)
     })
 
-    it("returns false when user email is undefined", () => {
-      expect(isEmailAllowed(undefined, "owner@example.com")).toBe(false)
+    it("uses a stable hash that does not contain the email", () => {
+      const id = userIdFromEmail("Owner@Example.com")
+      expect(id).toBe(userIdFromEmail("owner@example.com"))
+      expect(id).toMatch(/^[0-9a-f]{64}$/)
+      expect(id.includes("example")).toBe(false)
     })
 
-    it("is case-sensitive", () => {
-      expect(isEmailAllowed("Owner@Example.com", "owner@example.com")).toBe(false)
+    it("treats ALLOWED_EMAIL as the owner even when it is not first in the list", () => {
+      process.env.ALLOWED_EMAIL = "owner@example.com"
+      process.env.ALLOWED_EMAILS = "dad@example.com,owner@example.com"
+      expect(ownerEmail()).toBe("owner@example.com")
+    })
+
+    it("stamps the session email and drops a client-supplied address", () => {
+      process.env.ALLOWED_EMAILS = "owner@example.com,dad@example.com"
+      delete process.env.ALLOWED_EMAIL
+      const headers = new Headers({ "x-nw-user-email": "stranger@example.com" })
+      expect(stampUserHeader(headers, "Dad@Example.com").get("x-nw-user-email")).toBe(
+        "dad@example.com"
+      )
+      expect(stampUserHeader(headers, "stranger@example.com").has("x-nw-user-email")).toBe(false)
+    })
+
+    it("sends bearer imports to the owner unless the body names another invited person", () => {
+      process.env.ALLOWED_EMAIL = "owner@example.com"
+      process.env.ALLOWED_EMAILS = "dad@example.com"
+      expect(resolveImportTarget(undefined)).toBe("owner@example.com")
+      expect(resolveImportTarget("Dad@Example.com")).toBe("dad@example.com")
+      expect(() => resolveImportTarget("stranger@example.com")).toThrow(/invite list/)
     })
   })
 

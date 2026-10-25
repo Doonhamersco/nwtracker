@@ -3,6 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { db } from "@/db/client";
 import { videoDiaries, diaryCrypto } from "@/db/schema";
 import { deleteDiaryObjects } from "@/lib/r2";
+import { scopedDiaryObjectKey } from "@/lib/users/diary-access";
 import type {
   CreateDiaryInput,
   UpdateDiaryInput,
@@ -33,8 +34,10 @@ export function createDiary(input: CreateDiaryInput): VideoDiaryRow {
       recordedAt: input.recordedAt,
       notes: input.notes ?? null,
       youtubeVideoId: "",
-      r2ObjectKey: input.r2ObjectKey,
-      thumbObjectKey: input.thumbObjectKey ?? null,
+      r2ObjectKey: scopedDiaryObjectKey(input.r2ObjectKey, "write"),
+      thumbObjectKey: input.thumbObjectKey
+        ? scopedDiaryObjectKey(input.thumbObjectKey, "write")
+        : null,
       wrappedFileKey: input.wrappedFileKey,
       wrapIv: input.wrapIv,
       chunkSize: input.chunkSize,

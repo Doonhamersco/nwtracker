@@ -3,6 +3,7 @@ import path from "path";
 import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { userSettings, USER_SETTINGS_ID } from "@/db/schema";
+import { activeDataDir } from "@/lib/users/context";
 import {
   AVATAR_MAX_BYTES,
   DEFAULT_ACCENT_COLOR,
@@ -16,15 +17,8 @@ export type ProfileSettings = {
   updatedAt: string | null;
 };
 
-function getDataDir(): string {
-  if (process.env.DATA_DIR) return process.env.DATA_DIR;
-  const dbPath =
-    process.env.DB_PATH ?? path.join(process.cwd(), "data", "nwtracker.db");
-  return path.dirname(dbPath);
-}
-
 function avatarAbsolutePath(): string {
-  return path.join(getDataDir(), "profile", "avatar");
+  return path.join(activeDataDir(), "profile", "avatar");
 }
 
 function nowIso(): string {

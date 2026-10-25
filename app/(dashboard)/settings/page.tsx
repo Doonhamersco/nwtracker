@@ -6,6 +6,7 @@ import { AddAccountForm } from "@/components/settings/AddAccountForm"
 import { BrandMark } from "@/components/layout/BrandMark"
 import { Download, Key, Database, Info, Plus, User } from "lucide-react"
 import { ProfileForm } from "@/components/settings/ProfileForm"
+import { PersonalSecretForm } from "@/components/settings/PersonalSecretForm"
 import { useRouter, useSearchParams } from "next/navigation"
 
 interface AccountRow {
@@ -348,15 +349,16 @@ function SettingsPageInner() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-bg-base px-3 py-2">
-                <code className="text-xs text-muted">
-                  HEVY_API_KEY=••••••••••••••••
-                </code>
-              </div>
+              <PersonalSecretForm
+                label="Your Hevy API key"
+                placeholder="Paste a Hevy API key"
+                endpoint="/api/integrations/hevy"
+                onSaved={checkHevyStatus}
+              />
               <p className="text-xs text-muted">
-                API keys are stored as environment variables and cannot be edited from the UI.
-                Update <code className="rounded bg-border px-1 py-0.5 text-text">.env.local</code> and
-                restart the server to change them.
+                Each signed-in person keeps their own key. The original account still uses the
+                server <code className="rounded bg-border px-1 py-0.5 text-text">HEVY_API_KEY</code> until
+                a personal key is saved.
               </p>
             </div>
           </Card>
@@ -392,17 +394,17 @@ function SettingsPageInner() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border bg-bg-base px-3 py-2">
-                <code className="text-xs text-muted">
-                  STRAVA_CLIENT_ID=•••• · STRAVA_CLIENT_SECRET=•••• · STRAVA_REFRESH_TOKEN=••••
-                </code>
-              </div>
+              <PersonalSecretForm
+                label="Your Strava refresh token"
+                placeholder="Paste a refresh token with activity:read_all"
+                endpoint="/api/integrations/strava"
+                onSaved={checkStravaStatus}
+              />
               <p className="text-xs text-muted">
-                Scope must be activity:read_all. The server refreshes access tokens and stores the
-                latest refresh token on the data volume. Set the three values in{" "}
-                <code className="rounded bg-border px-1 py-0.5 text-text">.env.local</code> locally,
-                or with <code className="rounded bg-border px-1 py-0.5 text-text">fly secrets set</code> in
-                production.
+                The Strava client id and secret stay on the server. Each person stores their own
+                refresh token. The original account still uses{" "}
+                <code className="rounded bg-border px-1 py-0.5 text-text">STRAVA_REFRESH_TOKEN</code> until
+                a personal token is saved.
               </p>
             </div>
           </Card>

@@ -315,8 +315,7 @@ export function CardioSection({ initial }: { initial?: TrainingPayload }) {
 
       {status === "ok" && data && !data.strava.configured && (
         <p className="mt-6 rounded-xl border border-border bg-bg-base px-4 py-3 text-sm text-muted">
-          Strava is not connected. Set STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, and STRAVA_REFRESH_TOKEN
-          with the activity:read_all scope. The countdown stays either way.
+          Strava is not connected. Add your refresh token in Settings → API Keys. The countdown stays either way.
         </p>
       )}
 
