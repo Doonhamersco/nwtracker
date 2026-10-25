@@ -100,7 +100,10 @@ export default function GoalsPage() {
                     targetValue: editingItem.goal.targetValue,
                     targetDate: editingItem.goal.targetDate,
                     metricType: editingItem.goal.metricType,
+                    direction: editingItem.goal.direction,
                     linkedCategory: editingItem.goal.linkedCategory,
+                    linkedAccountId: editingItem.goal.linkedAccountId,
+                    linkedMetricId: editingItem.goal.linkedMetricId,
                     completedAt: editingItem.goal.completedAt,
                     files: editingItem.files,
                   }

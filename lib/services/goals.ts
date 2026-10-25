@@ -9,9 +9,19 @@ import {
   accounts,
 } from "@/db/schema";
 import { projectGoalCompletion, withCurrentPhysicalAssets } from "@/lib/engine/net-worth";
+import {
+  effectiveBaseline,
+  goalProgressPercent,
+  goalReachedTarget,
+  goalTracksDecrease,
+  storedGoalDirection,
+} from "@/lib/goals/progress";
 import { totalPhysicalAssetsGbp } from "@/lib/services/physical-assets";
 import { listFiles, deleteFile, type FileRow } from "@/lib/services/files";
+import type { GoalMetricType } from "@/db/schema";
 import type { CreateGoalInput, UpdateGoalInput } from "@/lib/validators/goals";
+
+export class GoalValidationError extends Error {}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -156,7 +166,69 @@ function getCurrentValueForGoal(goal: GoalRow): {
     return { currentValue, dataPoints };
   }
 
+  if (goal.metricType === "DEBT_PAYOFF") {
+    return debtSeriesForGoal(goal.linkedAccountId, allSnapshots);
+  }
+
   return { currentValue: null, dataPoints: [] };
+}
+
+/**
+ * Same debt figure as the overview DEBT KPI: sum of LIABILITY valuations.
+ * A linked account limits that to one loan. Snapshots are oldest-first.
+ */
+function debtSeriesForGoal(
+  linkedAccountId: string | null,
+  allSnapshots: ReturnType<typeof getAllCommittedSnapshots>
+): { currentValue: number | null; dataPoints: Array<{ timestamp: number; value: number }> } {
+  const liabilityIds = new Set(
+    db
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(eq(accounts.type, "LIABILITY"))
+      .all()
+      .map((account) => account.id)
+  );
+
+  if (linkedAccountId) {
+    if (!liabilityIds.has(linkedAccountId)) {
+      return { currentValue: null, dataPoints: [] };
+    }
+  }
+
+  const trackedIds = linkedAccountId ? new Set([linkedAccountId]) : liabilityIds;
+  const dataPoints: Array<{ timestamp: number; value: number }> = [];
+
+  for (const snap of allSnapshots) {
+    const valuations = db
+      .select()
+      .from(accountValuations)
+      .where(eq(accountValuations.snapshotId, snap.id))
+      .all();
+
+    if (valuations.length === 0) continue;
+
+    if (linkedAccountId) {
+      const match = valuations.find((valuation) => valuation.accountId === linkedAccountId);
+      if (!match) continue;
+      dataPoints.push({
+        timestamp: new Date(snap.takenAt).getTime(),
+        value: match.valueGbp,
+      });
+      continue;
+    }
+
+    const total = valuations.reduce((sum, valuation) => {
+      return trackedIds.has(valuation.accountId) ? sum + valuation.valueGbp : sum;
+    }, 0);
+    dataPoints.push({
+      timestamp: new Date(snap.takenAt).getTime(),
+      value: total,
+    });
+  }
+
+  const currentValue = dataPoints.length > 0 ? dataPoints[dataPoints.length - 1].value : null;
+  return { currentValue, dataPoints };
 }
 
 // ─── Pure computation ─────────────────────────────────────────────────────────
@@ -166,13 +238,16 @@ export function computeGoalProgress(
   currentValue: number,
   dataPoints: Array<{ timestamp: number; value: number }> = []
 ): GoalProgress {
-  const baseline = goal.baselineValue;
+  const decrease = goalTracksDecrease(goal);
   const target = goal.targetValue;
+  const baseline = effectiveBaseline(goal.baselineValue, dataPoints);
+  const progressPercent = goalProgressPercent(currentValue, baseline, target);
+  const reached = goalReachedTarget(decrease, currentValue, target);
 
   if (goal.completedAt) {
     return {
-      currentValue: Math.max(currentValue, target),
-      baselineValue: baseline ?? null,
+      currentValue: decrease ? currentValue : Math.max(currentValue, target),
+      baselineValue: baseline,
       targetValue: target,
       progressPercent: 100,
       isOnTrack: true,
@@ -181,17 +256,12 @@ export function computeGoalProgress(
     };
   }
 
-  let progressPercent: number | null = null;
-  if (baseline !== null && baseline !== undefined && target !== baseline) {
-    progressPercent = ((currentValue - baseline) / (target - baseline)) * 100;
-  }
-
-  if (currentValue >= target) {
+  if (reached) {
     return {
       currentValue,
-      baselineValue: baseline ?? null,
+      baselineValue: baseline,
       targetValue: target,
-      progressPercent,
+      progressPercent: progressPercent ?? 100,
       isOnTrack: true,
       projectedCompletionDate: null,
       status: "achieved",
@@ -201,7 +271,7 @@ export function computeGoalProgress(
   if (dataPoints.length < 2) {
     return {
       currentValue,
-      baselineValue: baseline ?? null,
+      baselineValue: baseline,
       targetValue: target,
       progressPercent,
       isOnTrack: null,
@@ -212,13 +282,12 @@ export function computeGoalProgress(
 
   const projectedDate = projectGoalCompletion(dataPoints, target);
   const targetDate = new Date(goal.targetDate);
-  const isOnTrack =
-    projectedDate !== null ? projectedDate <= targetDate : false;
+  const isOnTrack = projectedDate !== null ? projectedDate <= targetDate : false;
   const status = isOnTrack ? "on_track" : "at_risk";
 
   return {
     currentValue,
-    baselineValue: baseline ?? null,
+    baselineValue: baseline,
     targetValue: target,
     progressPercent,
     isOnTrack,
@@ -229,13 +298,56 @@ export function computeGoalProgress(
 
 // ─── CRUD ────────────────────────────────────────────────────────────────────
 
+function assertLiabilityAccount(accountId: string | null | undefined): void {
+  if (!accountId) return;
+  const [account] = db.select().from(accounts).where(eq(accounts.id, accountId)).all();
+  if (!account || account.type !== "LIABILITY") {
+    throw new GoalValidationError("linkedAccountId must be a liability account");
+  }
+}
+
+function linksForMetric(
+  metricType: GoalMetricType,
+  input: {
+    linkedMetricId?: string | null;
+    linkedCategory?: CreateGoalInput["linkedCategory"];
+    linkedAccountId?: string | null;
+  },
+  existing?: GoalRow
+): Pick<GoalRow, "linkedMetricId" | "linkedCategory" | "linkedAccountId"> {
+  return {
+    linkedMetricId:
+      metricType === "LIFE_METRIC"
+        ? (input.linkedMetricId !== undefined
+            ? input.linkedMetricId
+            : existing?.linkedMetricId ?? null)
+        : null,
+    linkedCategory:
+      metricType === "ACCOUNT_CATEGORY"
+        ? (input.linkedCategory !== undefined
+            ? input.linkedCategory ?? null
+            : existing?.linkedCategory ?? null)
+        : null,
+    linkedAccountId:
+      metricType === "DEBT_PAYOFF"
+        ? (input.linkedAccountId !== undefined
+            ? input.linkedAccountId
+            : existing?.linkedAccountId ?? null)
+        : null,
+  };
+}
+
 export function createGoal(input: CreateGoalInput): GoalRow {
   const id = randomUUID();
+  const direction = storedGoalDirection(input.metricType, input.direction);
+  const links = linksForMetric(input.metricType, input);
+  assertLiabilityAccount(links.linkedAccountId);
 
   let baselineValue = input.baselineValue ?? null;
   let baselineDate = input.baselineDate ?? null;
 
-  // Auto-set baseline from latest snapshot if not provided
+  // Auto-set baseline from the latest snapshot if not provided.
+  // For a debt goal this is the liability balance at creation.
   if (baselineValue === null) {
     const latestSnapshot = getLatestCommittedSnapshot();
     if (latestSnapshot) {
@@ -246,8 +358,10 @@ export function createGoal(input: CreateGoalInput): GoalRow {
         targetValue: input.targetValue,
         targetDate: input.targetDate,
         metricType: input.metricType,
-        linkedMetricId: input.linkedMetricId ?? null,
-        linkedCategory: input.linkedCategory ?? null,
+        direction,
+        linkedMetricId: links.linkedMetricId,
+        linkedCategory: links.linkedCategory,
+        linkedAccountId: links.linkedAccountId,
         baselineValue: null,
         baselineDate: null,
         completedAt: input.completedAt ?? null,
@@ -270,8 +384,10 @@ export function createGoal(input: CreateGoalInput): GoalRow {
       targetValue: input.targetValue,
       targetDate: input.targetDate,
       metricType: input.metricType,
-      linkedMetricId: input.linkedMetricId ?? null,
-      linkedCategory: input.linkedCategory ?? null,
+      direction,
+      linkedMetricId: links.linkedMetricId,
+      linkedCategory: links.linkedCategory,
+      linkedAccountId: links.linkedAccountId,
       baselineValue,
       baselineDate,
       completedAt: input.completedAt ?? null,
@@ -287,6 +403,43 @@ export function updateGoal(id: string, input: UpdateGoalInput): GoalRow {
   const existing = db.select().from(goals).where(eq(goals.id, id)).all()[0];
   if (!existing) throw new Error(`Goal not found: ${id}`);
 
+  const metricType = input.metricType ?? existing.metricType;
+  const direction = storedGoalDirection(
+    metricType,
+    input.direction !== undefined ? input.direction : existing.direction
+  );
+  const links = linksForMetric(metricType, input, existing);
+  assertLiabilityAccount(links.linkedAccountId);
+
+  if (input.targetValue !== undefined && !goalTracksDecrease({ metricType, direction })) {
+    if (input.targetValue <= 0) {
+      throw new GoalValidationError("targetValue must be positive");
+    }
+  }
+
+  const metricChanged = metricType !== existing.metricType;
+  const linkChanged =
+    links.linkedAccountId !== existing.linkedAccountId ||
+    links.linkedCategory !== existing.linkedCategory ||
+    links.linkedMetricId !== existing.linkedMetricId;
+
+  let baselineValue = input.baselineValue !== undefined ? input.baselineValue : existing.baselineValue;
+  let baselineDate = input.baselineDate !== undefined ? input.baselineDate : existing.baselineDate;
+
+  if (input.baselineValue === undefined && (metricChanged || linkChanged)) {
+    const latestSnapshot = getLatestCommittedSnapshot();
+    const { currentValue } = getCurrentValueForGoal({
+      ...existing,
+      metricType,
+      direction,
+      ...links,
+    });
+    if (currentValue !== null) {
+      baselineValue = currentValue;
+      baselineDate = latestSnapshot ? latestSnapshot.takenAt.slice(0, 10) : baselineDate;
+    }
+  }
+
   db.update(goals)
     .set({
       ...(input.name !== undefined && { name: input.name }),
@@ -295,6 +448,11 @@ export function updateGoal(id: string, input: UpdateGoalInput): GoalRow {
       ...(input.targetDate !== undefined && { targetDate: input.targetDate }),
       ...(input.isActive !== undefined && { isActive: input.isActive }),
       ...(input.completedAt !== undefined && { completedAt: input.completedAt }),
+      metricType,
+      direction,
+      ...links,
+      baselineValue,
+      baselineDate,
     })
     .where(eq(goals.id, id))
     .run();

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listGoals, createGoal } from "@/lib/services/goals";
+import { listGoals, createGoal, GoalValidationError } from "@/lib/services/goals";
 import { createGoalSchema } from "@/lib/validators/goals";
 
 export async function GET() {
@@ -35,6 +35,9 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("[POST /api/goals]", err);
     const message = err instanceof Error ? err.message : "Unknown error";
+    if (err instanceof GoalValidationError) {
+      return NextResponse.json({ error: message }, { status: 422 });
+    }
     return NextResponse.json({ error: "Failed to create goal", detail: message }, { status: 500 });
   }
 }

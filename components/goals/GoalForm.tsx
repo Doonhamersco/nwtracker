@@ -3,7 +3,14 @@
 import { useEffect, useRef, useState } from "react"
 import { ImagePlus, X } from "lucide-react"
 
-type MetricType = "NET_WORTH" | "LIFE_METRIC" | "ACCOUNT_CATEGORY"
+type MetricType = "NET_WORTH" | "LIFE_METRIC" | "ACCOUNT_CATEGORY" | "DEBT_PAYOFF"
+type GoalDirection = "increase" | "decrease"
+
+interface LiabilityAccount {
+  id: string
+  name: string
+  type: "ASSET" | "LIABILITY"
+}
 
 export interface GoalFileMeta {
   id: string
@@ -18,7 +25,10 @@ export interface GoalFormInitial {
   targetValue: number
   targetDate: string
   metricType: MetricType
+  direction: GoalDirection
   linkedCategory: string | null
+  linkedAccountId: string | null
+  linkedMetricId: string | null
   completedAt: string | null
   files: GoalFileMeta[]
 }
@@ -30,10 +40,11 @@ interface GoalFormProps {
   onCancel: () => void
 }
 
-const METRIC_TYPE_OPTIONS = [
+export const METRIC_TYPE_OPTIONS = [
   { value: "NET_WORTH", label: "Net Worth" },
   { value: "LIFE_METRIC", label: "Life Metric" },
   { value: "ACCOUNT_CATEGORY", label: "Account Category" },
+  { value: "DEBT_PAYOFF", label: "Pay off debt" },
 ] as const
 
 const ACCOUNT_CATEGORIES = [
@@ -84,9 +95,17 @@ export function GoalForm({
   const [metricType, setMetricType] = useState<MetricType>(
     initial?.metricType ?? "NET_WORTH"
   )
+  const [direction, setDirection] = useState<GoalDirection>(
+    initial?.metricType === "DEBT_PAYOFF" ? "decrease" : (initial?.direction ?? "increase")
+  )
   const [linkedCategory, setLinkedCategory] = useState(
     initial?.linkedCategory ?? "CASH"
   )
+  const [linkedAccountId, setLinkedAccountId] = useState(
+    initial?.linkedAccountId ?? ""
+  )
+  const [linkedMetricId] = useState(initial?.linkedMetricId ?? null)
+  const [liabilityAccounts, setLiabilityAccounts] = useState<LiabilityAccount[]>([])
   const [isCompleted, setIsCompleted] = useState(
     Boolean(initial?.completedAt) || defaultMarkCompleted
   )
@@ -106,6 +125,23 @@ export function GoalForm({
   useEffect(() => {
     pendingImagesRef.current = pendingImages
   }, [pendingImages])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/accounts")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((rows: LiabilityAccount[]) => {
+        if (!cancelled) {
+          setLiabilityAccounts(rows.filter((account) => account.type === "LIABILITY"))
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLiabilityAccounts([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -184,13 +220,16 @@ export function GoalForm({
         targetValue: parseFloat(targetValue),
         targetDate,
         completedAt: isCompleted ? completedAt : null,
+        metricType,
+        direction: metricType === "DEBT_PAYOFF" ? "decrease" : direction,
+        linkedAccountId: metricType === "DEBT_PAYOFF" && linkedAccountId ? linkedAccountId : null,
       }
 
-      if (!isEdit) {
-        body.metricType = metricType
-        if (metricType === "ACCOUNT_CATEGORY") {
-          body.linkedCategory = linkedCategory
-        }
+      if (metricType === "ACCOUNT_CATEGORY") {
+        body.linkedCategory = linkedCategory
+      }
+      if (metricType === "LIFE_METRIC" && linkedMetricId) {
+        body.linkedMetricId = linkedMetricId
       }
 
       const res = await fetch(isEdit ? `/api/goals/${initial!.id}` : "/api/goals", {
@@ -265,7 +304,7 @@ export function GoalForm({
             step="any"
             value={targetValue}
             onChange={(e) => setTargetValue(e.target.value)}
-            placeholder="100000"
+            placeholder={metricType === "DEBT_PAYOFF" ? "0" : "100000"}
             className={inputClass}
           />
         </div>
@@ -281,24 +320,65 @@ export function GoalForm({
         </div>
       </div>
 
-      {!isEdit && (
+      <div>
+        <label className={labelClass}>Metric Type *</label>
+        <select
+          value={metricType}
+          onChange={(e) => {
+            const next = e.target.value as MetricType
+            setMetricType(next)
+            if (next === "DEBT_PAYOFF") {
+              setDirection("decrease")
+              if (targetValue.trim() === "") setTargetValue("0")
+            }
+          }}
+          className={inputClass}
+        >
+          {METRIC_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {metricType === "DEBT_PAYOFF" ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-muted">
+            Tracks the same debt total as the overview. The goal is complete when the balance
+            is at or below the target. £0 means the debt is paid off.
+          </p>
+          <div>
+            <label className={labelClass}>Loan account</label>
+            <select
+              value={linkedAccountId}
+              onChange={(e) => setLinkedAccountId(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">All debt</option>
+              {liabilityAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      ) : (
         <div>
-          <label className={labelClass}>Metric Type *</label>
+          <label className={labelClass}>Direction</label>
           <select
-            value={metricType}
-            onChange={(e) => setMetricType(e.target.value as MetricType)}
+            value={direction}
+            onChange={(e) => setDirection(e.target.value as GoalDirection)}
             className={inputClass}
           >
-            {METRIC_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
+            <option value="increase">Increase toward target</option>
+            <option value="decrease">Reduce toward target</option>
           </select>
         </div>
       )}
 
-      {!isEdit && metricType === "ACCOUNT_CATEGORY" && (
+      {metricType === "ACCOUNT_CATEGORY" && (
         <div>
           <label className={labelClass}>Account Category *</label>
           <select

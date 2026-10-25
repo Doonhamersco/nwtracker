@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui/Card"
 import { useAccentColor } from "@/components/layout/ProfileProvider"
+import { goalDateCaption } from "@/lib/goals/progress"
 
 interface GoalProgress {
   currentValue: number
@@ -25,9 +26,11 @@ interface GoalRow {
   description: string | null
   targetValue: number
   targetDate: string
-  metricType: "NET_WORTH" | "LIFE_METRIC" | "ACCOUNT_CATEGORY"
+  metricType: "NET_WORTH" | "LIFE_METRIC" | "ACCOUNT_CATEGORY" | "DEBT_PAYOFF"
+  direction: "increase" | "decrease"
   linkedMetricId: string | null
   linkedCategory: string | null
+  linkedAccountId: string | null
   baselineValue: number | null
   baselineDate: string | null
   completedAt: string | null
@@ -48,7 +51,8 @@ interface GoalCardProps {
   onDelete: () => void
 }
 
-function formatValue(value: number): string {
+function formatValue(value: number, metricType: GoalRow["metricType"]): string {
+  if (metricType !== "LIFE_METRIC" && value === 0) return "£0"
   if (value >= 1_000_000) {
     return "£" + (value / 1_000_000).toFixed(2) + "M"
   }
@@ -119,12 +123,14 @@ export function GoalCard({ item, onEdit, onComplete, onDelete }: GoalCardProps) 
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div className="flex flex-col gap-0.5">
           <span className={`${muted} uppercase tracking-wide`}>Current</span>
-          <span className={`font-semibold ${heading}`}>{formatValue(progress.currentValue)}</span>
+          <span className={`font-semibold ${heading}`}>
+            {formatValue(progress.currentValue, goal.metricType)}
+          </span>
         </div>
         <div className="flex flex-col gap-0.5">
           <span className={`${muted} uppercase tracking-wide`}>Target</span>
           <span className={`font-semibold ${heading}`}>
-            {formatValue(progress.targetValue)}
+            {formatValue(progress.targetValue, goal.metricType)}
           </span>
           <span className={muted}>by {formatDate(goal.targetDate)}</span>
         </div>
@@ -133,11 +139,12 @@ export function GoalCard({ item, onEdit, onComplete, onDelete }: GoalCardProps) 
             {isCompleted ? "Completed" : "Projected"}
           </span>
           <span className={`font-semibold ${heading}`}>
-            {isCompleted && goal.completedAt
-              ? formatDate(goal.completedAt)
-              : progress.projectedCompletionDate
-                ? formatDate(progress.projectedCompletionDate)
-                : "Insufficient data"}
+            {goalDateCaption({
+              isCompleted,
+              completedAt: goal.completedAt,
+              projectedCompletionDate: progress.projectedCompletionDate,
+              formatDate,
+            })}
           </span>
         </div>
       </div>
