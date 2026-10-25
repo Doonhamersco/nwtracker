@@ -4,7 +4,7 @@ import { accounts } from "./accounts";
 import { subscriptions } from "./subscriptions";
 
 export const transactionDirectionEnum = ["in", "out"] as const;
-export const transactionCategorySourceEnum = ["rule", "manual", "import"] as const;
+export const transactionCategorySourceEnum = ["rule", "manual", "import", "builtin"] as const;
 export const categoryRuleMatchTypeEnum = ["contains", "exact", "regex"] as const;
 
 export type TransactionDirection = (typeof transactionDirectionEnum)[number];

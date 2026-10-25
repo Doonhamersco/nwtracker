@@ -11,6 +11,7 @@ import { checkStatementBalances, type BalanceCheck } from "@/lib/spending/balanc
 import { transactionFingerprint } from "@/lib/spending/hash";
 import { cleanMerchant, inferIsTransfer } from "@/lib/spending/merchant";
 import { roundPence, signedAmount } from "@/lib/spending/money";
+import { matchBuiltinCategory } from "@/lib/spending/builtin-rules";
 import { matchCategoryRule, type CategoryRule } from "@/lib/spending/rules";
 import type {
   ImportTransactionsInput,
@@ -105,16 +106,31 @@ export function importTransactions(
     input.transactions.forEach((row, index) => {
       const descriptionRaw = row.description.trim();
       const merchant = cleanMerchant(descriptionRaw);
-      const rule = matchCategoryRule(rules, descriptionRaw, merchant);
-      const category = rule?.category ?? row.category ?? null;
-      const isTransfer = rule
-        ? rule.isTransfer
-        : inferIsTransfer({
-            description: descriptionRaw,
-            category,
-            explicit: row.is_transfer,
-          });
-      const categorySource = rule ? "rule" : category ? "import" : null;
+      const importedCategory = row.category?.trim() ? row.category.trim() : null;
+      const userRule = matchCategoryRule(rules, descriptionRaw, merchant);
+      // A category on the import row was chosen already. Built-in keywords
+      // fill the gap for statement lines that arrive uncategorised.
+      const builtin =
+        userRule || importedCategory
+          ? null
+          : matchBuiltinCategory(descriptionRaw, merchant);
+      const category = userRule?.category ?? importedCategory ?? builtin?.category ?? null;
+      const isTransfer = inferIsTransfer({
+        description: descriptionRaw,
+        category,
+        explicit: userRule
+          ? userRule.isTransfer
+          : builtin
+            ? builtin.isTransfer
+            : row.is_transfer,
+      });
+      const categorySource = userRule
+        ? "rule"
+        : importedCategory
+          ? "import"
+          : builtin
+            ? "builtin"
+            : null;
       const amount = roundPence(row.amount_gbp);
       const balanceAfter = roundPence(row.balance_gbp);
       const id = transactionFingerprint({

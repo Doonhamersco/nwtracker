@@ -29,6 +29,7 @@ export function TransactionsTable({
         <h2 className="font-display text-xl font-medium text-text">Transactions</h2>
         <p className="mt-1 text-sm text-muted">
           Change a category inline. Tick apply to future so the next import uses it.
+          Auto marks a suggestion from common UK merchants.
         </p>
       </div>
       <div className="mt-4 overflow-x-auto">
@@ -150,30 +151,40 @@ function TransactionRow({
               </button>
             </form>
           ) : (
-            <select
-              aria-label={`Category for ${tx.merchant}`}
-              value={tx.category ?? ""}
-              disabled={saving}
-              onChange={(event) => {
-                if (event.target.value === "__custom") {
-                  setCustom(true)
-                  setDraft(tx.category ?? "")
-                  return
-                }
-                void save(event.target.value)
-              }}
-              className="max-w-[16rem] rounded-lg border border-border bg-bg-base px-2 py-1.5 text-sm text-text focus:border-accent focus:outline-none"
-            >
-              <option value="" disabled>
-                Uncategorised
-              </option>
-              {options.map((category) => (
-                <option key={category} value={category}>
-                  {category}
+            <div className="flex items-center gap-2">
+              <select
+                aria-label={`Category for ${tx.merchant}`}
+                value={tx.category ?? ""}
+                disabled={saving}
+                onChange={(event) => {
+                  if (event.target.value === "__custom") {
+                    setCustom(true)
+                    setDraft(tx.category ?? "")
+                    return
+                  }
+                  void save(event.target.value)
+                }}
+                className="max-w-[16rem] rounded-lg border border-border bg-bg-base px-2 py-1.5 text-sm text-text focus:border-accent focus:outline-none"
+              >
+                <option value="" disabled>
+                  Uncategorised
                 </option>
-              ))}
-              <option value="__custom">Custom…</option>
-            </select>
+                {options.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+                <option value="__custom">Custom…</option>
+              </select>
+              {tx.categorySource === "builtin" && (
+                <span
+                  className="shrink-0 rounded-full bg-bg-hover px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted"
+                  title="Suggested from common UK merchants. Your category replaces it."
+                >
+                  auto
+                </span>
+              )}
+            </div>
           )}
           <label className="flex items-center gap-2 text-xs text-muted">
             <input

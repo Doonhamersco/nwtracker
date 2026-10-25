@@ -9,7 +9,7 @@ export interface SpendingTransaction {
   type: string;
   balanceAfterGbp: number;
   category: string | null;
-  categorySource: "rule" | "manual" | "import" | null;
+  categorySource: "rule" | "manual" | "import" | "builtin" | null;
   isTransfer: boolean;
   subscriptionId: string | null;
   statementMonth: string;
