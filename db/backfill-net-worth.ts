@@ -13,6 +13,7 @@ import { db } from "./client";
 import { snapshots, fxRates } from "./schema";
 import { and, gte, lte } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { enterOwnerIfMigrated } from "../lib/users/context";
 
 // Historical USD→GBP rate for January 2024 (mid-market, ~15 Jan 2024)
 const USD_GBP_JAN_2024 = 0.7898;
@@ -39,6 +40,7 @@ const entries = [
 ];
 
 async function main() {
+  enterOwnerIfMigrated();
   for (const entry of entries) {
     const dayStart = `${entry.date} 00:00:00`;
     const dayEnd = `${entry.date} 23:59:59`;

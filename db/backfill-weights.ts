@@ -2,6 +2,7 @@ import { db } from "./client";
 import { snapshots, lifeMetricReadings, lifeMetricDefinitions } from "./schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { enterOwnerIfMigrated } from "../lib/users/context";
 
 const weightData: { date: string; weight: number; location?: string }[] = [
   // 2024
@@ -45,6 +46,7 @@ const weightData: { date: string; weight: number; location?: string }[] = [
 ];
 
 async function main() {
+  enterOwnerIfMigrated();
   // 1. Look up Body Weight metric definition
   const [metricDef] = await db
     .select()

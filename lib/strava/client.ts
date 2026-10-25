@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { summarizeCardio, isTimeTrialDistance, MIN_EFFORT_DISTANCE_METERS } from "./metrics";
+import { readTokenFile, writeTokenFile, type TokenSet } from "./token-file";
+import { activeDataDir, currentScope } from "@/lib/users/context";
+import { registerStravaGatewayReset, stravaEnvForUser, stravaTokenPathFor } from "@/lib/users/secrets";
 import { normalizeStravaRun, type NormalizedRun, type RawStravaActivity } from "./normalize";
 import type { CardioSummary } from "@/lib/training/types";
 
@@ -21,18 +24,7 @@ export class StravaApiError extends Error {
   }
 }
 
-export interface TokenSet {
-  accessToken: string;
-  refreshToken: string;
-  /** Unix seconds. */
-  expiresAt: number;
-  /**
-   * STRAVA_REFRESH_TOKEN this file was derived from.
-   * A rotated Strava refresh token stays in `refreshToken`; this field records
-   * which env value produced it. When the env token changes, the file is ignored.
-   */
-  envRefreshToken?: string;
-}
+export type { TokenSet };
 
 export interface StravaEnv {
   clientId: string;
@@ -70,50 +62,10 @@ function apiError(status: number): string {
   return "Could not load runs from Strava.";
 }
 
-export function readTokenFile(filePath: string): TokenSet | null {
-  try {
-    const raw = JSON.parse(fs.readFileSync(filePath, "utf8")) as Partial<TokenSet>;
-    if (typeof raw.refreshToken !== "string" || typeof raw.accessToken !== "string") return null;
-    return {
-      accessToken: raw.accessToken,
-      refreshToken: raw.refreshToken,
-      expiresAt: typeof raw.expiresAt === "number" ? raw.expiresAt : 0,
-      ...(typeof raw.envRefreshToken === "string" ? { envRefreshToken: raw.envRefreshToken } : {}),
-    };
-  } catch {
-    return null;
-  }
-}
-
-export function writeTokenFile(filePath: string, tokens: TokenSet): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const tmp = `${filePath}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(tokens), { mode: 0o600 });
-  fs.renameSync(tmp, filePath);
-  try {
-    fs.chmodSync(filePath, 0o600);
-  } catch {
-    // Some volumes ignore chmod. The file still stays on the data volume, outside git.
-  }
-}
+export { readTokenFile, writeTokenFile };
 
 export function defaultStravaTokenPath(): string {
-  const dir =
-    process.env.DATA_DIR ??
-    path.dirname(process.env.DB_PATH ?? path.join(process.cwd(), "data", "nwtracker.db"));
-  return path.join(dir, "strava-oauth.json");
-}
-
-function envFromProcess(): StravaEnv {
-  return {
-    clientId: process.env.STRAVA_CLIENT_ID?.trim() ?? "",
-    clientSecret: process.env.STRAVA_CLIENT_SECRET?.trim() ?? "",
-    refreshToken: process.env.STRAVA_REFRESH_TOKEN?.trim() ?? "",
-  };
-}
-
-function configured(env: StravaEnv): boolean {
-  return Boolean(env.clientId && env.clientSecret && env.refreshToken);
+  return path.join(activeDataDir(), "strava-oauth.json");
 }
 
 async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
@@ -323,7 +275,10 @@ export function createStravaGateway(deps: GatewayDeps): StravaGateway {
 
   return {
     isConfigured() {
-      return configured(deps.readEnv());
+      const env = deps.readEnv();
+      if (env.clientId && env.clientSecret && env.refreshToken) return true;
+      if (!env.clientId || !env.clientSecret) return false;
+      return Boolean(readTokenFile(deps.tokenPath)?.refreshToken);
     },
     clearCache() {
       cache = null;
@@ -343,7 +298,38 @@ export function createStravaGateway(deps: GatewayDeps): StravaGateway {
   };
 }
 
-export const stravaGateway = createStravaGateway({
-  tokenPath: defaultStravaTokenPath(),
-  readEnv: envFromProcess,
-});
+const gateways = new Map<string, StravaGateway>();
+
+function gatewayFor(userId: string | null): StravaGateway {
+  const key = userId ?? "__legacy__";
+  const existing = gateways.get(key);
+  if (existing) return existing;
+  const created = createStravaGateway({
+    tokenPath: userId ? stravaTokenPathFor(userId) : defaultStravaTokenPath(),
+    readEnv: () => stravaEnvForUser(userId),
+  });
+  gateways.set(key, created);
+  return created;
+}
+
+function currentGateway(): StravaGateway {
+  return gatewayFor(currentScope()?.userId ?? null);
+}
+
+export function dropStravaGateway(userId: string): void {
+  gateways.delete(userId);
+}
+
+registerStravaGatewayReset(dropStravaGateway);
+
+export const stravaGateway: StravaGateway = {
+  isConfigured() {
+    return currentGateway().isConfigured();
+  },
+  clearCache() {
+    currentGateway().clearCache();
+  },
+  getSummary() {
+    return currentGateway().getSummary();
+  },
+};

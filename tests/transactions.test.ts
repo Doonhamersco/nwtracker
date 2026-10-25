@@ -251,11 +251,19 @@ describe("import auth", () => {
 
   it("imports when the bearer matches", async () => {
     vi.stubEnv("IMPORT_API_TOKEN", "correct-token");
+    vi.stubEnv("ALLOWED_EMAIL", "owner@example.com");
     const res = await post(sample, "Bearer correct-token");
     expect(res.status).toBe(200);
     const body = (await res.json()) as { inserted: number; skipped: number };
     expect(body.inserted).toBe(1);
     expect(body.skipped).toBe(0);
+  });
+
+  it("rejects a bearer import for someone who is not invited", async () => {
+    vi.stubEnv("IMPORT_API_TOKEN", "correct-token");
+    vi.stubEnv("ALLOWED_EMAIL", "owner@example.com");
+    const res = await post({ ...sample, userEmail: "stranger@example.com" }, "Bearer correct-token");
+    expect(res.status).toBe(403);
   });
 });
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { hevyClient } from "@/lib/hevy/client";
+import { hevyClient, hevyIsConfigured } from "@/lib/hevy/client";
 import { StravaApiError, stravaGateway } from "@/lib/strava/client";
 import { buildTrainingPayload } from "@/lib/training/payload";
 
@@ -22,7 +22,7 @@ export async function GET() {
       }
     },
     loadHevy: async () => {
-      if (!process.env.HEVY_API_KEY) return { available: false, reason: "unconfigured" };
+      if (!hevyIsConfigured()) return { available: false, reason: "unconfigured" };
       try {
         const snapshot = await hevyClient.getTrainingSnapshot();
         return { available: true, ...snapshot };

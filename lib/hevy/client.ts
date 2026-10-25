@@ -1,4 +1,6 @@
 import { londonToday, weekStart } from "@/lib/training/dates";
+import { currentScope } from "@/lib/users/context";
+import { hevyApiKeyForScope, hevyConfigured } from "@/lib/users/secrets";
 import { trainingStreakDays, weeklyTrainingTotals, workoutVolumeKg } from "./metrics";
 import type {
   BodyMeasurementsResponse,
@@ -25,9 +27,11 @@ const HEVY_LIST_PAGE_SIZE = 10;
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getApiKey(): string {
-  const key = process.env.HEVY_API_KEY;
-  if (!key) throw new Error("HEVY_API_KEY environment variable is not set.");
-  return key;
+  return hevyApiKeyForScope(currentScope());
+}
+
+export function hevyIsConfigured(): boolean {
+  return hevyConfigured();
 }
 
 function buildHeaders(): HeadersInit {

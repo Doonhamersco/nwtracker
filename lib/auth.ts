@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
+import { isEmailAllowed } from "@/lib/users/identity"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [Google],
@@ -8,9 +9,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return !!auth?.user
     },
     async signIn({ user }) {
-      const allowed = process.env.ALLOWED_EMAIL
-      if (!allowed) return false
-      return user.email === allowed
+      return isEmailAllowed(user.email)
+    },
+    async jwt({ token, user }) {
+      if (user?.email) token.email = user.email
+      return token
+    },
+    async session({ session, token }) {
+      if (typeof token.email === "string" && session.user) {
+        session.user.email = token.email
+      }
+      return session
     },
   },
   pages: {

@@ -108,13 +108,11 @@ export function DiaryForm({ masterKey, initial, onSuccess, onCancel }: DiaryForm
       const id = crypto.randomUUID()
       const fileKey = randomBytes(32)
       const wrapped = await wrapFileKey(fileKey, masterKey)
-      const videoKey = diaryVideoKey(id)
-
       setProgress("Encrypting video…")
       const encrypted = await encryptBlob(file, fileKey)
 
       setProgress("Uploading ciphertext…")
-      await uploadEncryptedObject(videoKey, encrypted.blob)
+      const videoKey = await uploadEncryptedObject(diaryVideoKey(id), encrypted.blob)
 
       let thumbObjectKey: string | null = null
       setProgress("Encrypting thumbnail…")
@@ -122,9 +120,8 @@ export function DiaryForm({ masterKey, initial, onSuccess, onCancel }: DiaryForm
       if (thumb) {
         const thumbBytes = new Uint8Array(await thumb.arrayBuffer())
         const thumbEnc = await encryptBytes(thumbBytes, fileKey)
-        thumbObjectKey = diaryThumbKey(id)
-        await uploadEncryptedObject(
-          thumbObjectKey,
+        thumbObjectKey = await uploadEncryptedObject(
+          diaryThumbKey(id),
           new Blob([new Uint8Array(thumbEnc)], { type: "application/octet-stream" })
         )
       }

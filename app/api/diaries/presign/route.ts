@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { diaryPresignSchema } from "@/lib/validators/diaries";
-import { presignGetUrl, presignPutUrl } from "@/lib/r2";
+import { ownedDiaryKey, presignGetUrl, presignPutUrl } from "@/lib/r2";
 
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -19,11 +19,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const purpose = parsed.data.purpose === "put" ? "write" : "read";
+    const key = ownedDiaryKey(parsed.data.key, purpose);
     const url =
-      parsed.data.purpose === "put"
-        ? await presignPutUrl(parsed.data.key)
-        : await presignGetUrl(parsed.data.key);
-    return NextResponse.json({ url });
+      purpose === "write" ? await presignPutUrl(key) : await presignGetUrl(key);
+    return NextResponse.json({ url, key });
   } catch (err) {
     console.error("[POST /api/diaries/presign]", err);
     const message = err instanceof Error ? err.message : "Unknown error";

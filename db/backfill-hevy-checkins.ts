@@ -11,6 +11,7 @@ import { db } from "./client";
 import { lifeMetricDefinitions, lifeMetricReadings, snapshots } from "./schema";
 import { hevyClient } from "../lib/hevy/client";
 import { hevyMetricsAsOf } from "../lib/hevy/metrics";
+import { enterOwnerIfMigrated } from "../lib/users/context";
 
 if (!process.env.HEVY_API_KEY) {
   console.log("HEVY_API_KEY is not set — nothing to backfill. Exiting.");
@@ -18,6 +19,7 @@ if (!process.env.HEVY_API_KEY) {
 }
 
 async function main() {
+  enterOwnerIfMigrated();
   const hevyMetrics = db
     .select()
     .from(lifeMetricDefinitions)

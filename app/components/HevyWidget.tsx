@@ -118,7 +118,7 @@ export default function HevyWidget({ initial }: { initial?: HevyStats }) {
       {status === "error" && (
         <div className="rounded-lg bg-negative/10 border border-negative/30 px-3 py-2 text-xs text-negative">
           {errorMsg.includes("HEVY_API_KEY")
-            ? "Add your HEVY_API_KEY to .env.local to connect Hevy."
+            ? "Add your Hevy API key in Settings → API Keys."
             : errorMsg}
         </div>
       )}
