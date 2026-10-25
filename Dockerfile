@@ -34,6 +34,10 @@ COPY --from=builder /app/.next         ./.next
 COPY --from=builder /app/next.config.ts ./
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/db            ./db
+# db/migrate.ts is executed with tsx, which resolves the @/ alias from tsconfig
+# and loads lib/users from source. The Next server bundle does not include those files.
+COPY --from=builder /app/lib           ./lib
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 RUN mkdir -p /data
 
