@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { addDays, londonToday } from "@/lib/training/dates";
 import { summarizeCardio, isTimeTrialDistance, MIN_EFFORT_DISTANCE_METERS } from "./metrics";
 import { readTokenFile, writeTokenFile, type TokenSet } from "./token-file";
 import { activeDataDir, currentScope } from "@/lib/users/context";
@@ -10,6 +11,10 @@ import type { CardioSummary } from "@/lib/training/types";
 const TOKEN_URL = "https://www.strava.com/oauth/token";
 const API_URL = "https://www.strava.com/api/v3";
 const DETAIL_CAP = 40;
+/** Covers the 12-month distance chart, including the first day of the oldest month. */
+const ACTIVITY_LOOKBACK_SECONDS = 400 * 24 * 60 * 60;
+const ACTIVITY_PAGES = 6;
+const EFFORT_LOOKBACK_DAYS = 180;
 const DETAIL_CONCURRENCY = 4;
 const CACHE_MS = 10 * 60 * 1000;
 const REFRESH_LEEWAY_SECONDS = 3600;
@@ -221,7 +226,7 @@ export function createStravaGateway(deps: GatewayDeps): StravaGateway {
 
   async function listActivities(token: string, after: number): Promise<RawStravaActivity[]> {
     const all: RawStravaActivity[] = [];
-    for (let page = 1; page <= 3; page++) {
+    for (let page = 1; page <= ACTIVITY_PAGES; page++) {
       const batch = await getJson<RawStravaActivity[]>(
         token,
         `${API_URL}/athlete/activities?after=${after}&page=${page}&per_page=200`,
@@ -235,12 +240,13 @@ export function createStravaGateway(deps: GatewayDeps): StravaGateway {
 
   async function loadSummary(token: string): Promise<CardioSummary> {
     const current = now();
-    const after = Math.floor(current.getTime() / 1000) - 180 * 24 * 60 * 60;
+    const after = Math.floor(current.getTime() / 1000) - ACTIVITY_LOOKBACK_SECONDS;
     const listed = await listActivities(token, after);
     const summaries = listed
       .map((activity) => normalizeStravaRun(activity))
       .filter((run): run is NormalizedRun => run != null);
-    const ids = detailIds(summaries);
+    const effortStart = addDays(londonToday(current), -EFFORT_LOOKBACK_DAYS);
+    const ids = detailIds(summaries.filter((run) => run.date >= effortStart));
     const details = await mapPool(ids, DETAIL_CONCURRENCY, async (id) => {
       try {
         return await getJson<RawStravaActivity>(token, `${API_URL}/activities/${id}`);

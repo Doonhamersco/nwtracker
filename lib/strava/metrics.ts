@@ -2,6 +2,7 @@ import { addDays, CARDIO_RUNS_PER_WEEK, weekStart, londonToday } from "@/lib/tra
 import type {
   BestEffort,
   CardioSummary,
+  MonthDistance,
   OnTrackStatus,
   PaceTrend,
   RecentRun,
@@ -17,6 +18,9 @@ const KM_SPLIT_FRACTION = (ONE_POINT_FIVE_MILE_METERS - 2000) / 1000;
 
 export const MIN_EFFORT_DISTANCE_METERS = ONE_POINT_FIVE_MILE_METERS * 0.97;
 const PACE_CHANGE_SECONDS = 2;
+const MONTHS_SHOWN = 12;
+/** Best efforts stay inside the window the cardio card describes as six months. */
+const EFFORT_LOOKBACK_DAYS = 180;
 
 function within(distance: number, target: number, tolerance: number): boolean {
   if (distance <= 0) return false;
@@ -211,6 +215,31 @@ function weeklySeries(runs: NormalizedRun[], today: string): WeekPace[] {
   return weeks;
 }
 
+function shiftMonth(year: number, month: number, delta: number): { year: number; month: number } {
+  const index = year * 12 + (month - 1) + delta;
+  return { year: Math.floor(index / 12), month: (index % 12) + 1 };
+}
+
+function monthlySeries(runs: NormalizedRun[], today: string): MonthDistance[] {
+  const [year, month] = today.split("-").map(Number);
+  const start = shiftMonth(year, month, -(MONTHS_SHOWN - 1));
+  const months: MonthDistance[] = [];
+  for (let i = 0; i < MONTHS_SHOWN; i++) {
+    const point = shiftMonth(start.year, start.month, i);
+    months.push({
+      month: `${point.year}-${String(point.month).padStart(2, "0")}`,
+      distanceKm: 0,
+    });
+  }
+  const index = new Map(months.map((entry, i) => [entry.month, i]));
+  for (const run of runs) {
+    const slot = index.get(run.date.slice(0, 7));
+    if (slot == null) continue;
+    months[slot].distanceKm += run.distanceMeters / 1000;
+  }
+  return months;
+}
+
 function recentRuns(runs: NormalizedRun[]): RecentRun[] {
   return [...runs]
     .sort((a, b) => (a.startLocal < b.startLocal ? 1 : a.startLocal > b.startLocal ? -1 : b.id - a.id))
@@ -232,6 +261,8 @@ export function summarizeCardio(runs: NormalizedRun[], now: Date): CardioSummary
   const current = weeks[weeks.length - 1];
   const last7Start = addDays(today, -6);
   const runsLast7Days = runs.filter((run) => run.date >= last7Start && run.date <= today).length;
+  const effortStart = addDays(today, -EFFORT_LOOKBACK_DAYS);
+  const effortRuns = runs.filter((run) => run.date >= effortStart && run.date <= today);
 
   return {
     weeklyDistanceKm: current?.distanceKm ?? 0,
@@ -242,9 +273,10 @@ export function summarizeCardio(runs: NormalizedRun[], now: Date): CardioSummary
     targetRunsPerWeek: CARDIO_RUNS_PER_WEEK,
     paceTrend: paceTrend(runs, today),
     weeklyPace: weeks,
+    monthlyDistance: monthlySeries(runs, today),
     recentRuns: recentRuns(runs),
-    bestOnePointFiveMile: bestMeasured(runs, "1.5") ?? bestOnePointFiveFromSplits(runs),
-    bestFiveK: bestMeasured(runs, "5k"),
+    bestOnePointFiveMile: bestMeasured(effortRuns, "1.5") ?? bestOnePointFiveFromSplits(effortRuns),
+    bestFiveK: bestMeasured(effortRuns, "5k"),
   };
 }
 

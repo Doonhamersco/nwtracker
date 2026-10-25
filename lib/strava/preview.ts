@@ -31,6 +31,20 @@ export function previewTrainingConnected(): TrainingPayload {
           { weekStart: "2026-10-12", paceSecPerKm: 320, distanceKm: 23.1, sessions: 4 },
           { weekStart: "2026-10-19", paceSecPerKm: 318, distanceKm: 18.6, sessions: 3 },
         ],
+        monthlyDistance: [
+          { month: "2025-11", distanceKm: 62.4 },
+          { month: "2025-12", distanceKm: 41.0 },
+          { month: "2026-01", distanceKm: 0 },
+          { month: "2026-02", distanceKm: 28.6 },
+          { month: "2026-03", distanceKm: 74.2 },
+          { month: "2026-04", distanceKm: 80.5 },
+          { month: "2026-05", distanceKm: 55.0 },
+          { month: "2026-06", distanceKm: 0 },
+          { month: "2026-07", distanceKm: 91.3 },
+          { month: "2026-08", distanceKm: 68.8 },
+          { month: "2026-09", distanceKm: 79.8 },
+          { month: "2026-10", distanceKm: 86.4 },
+        ],
         recentRuns: [
           {
             id: 5,

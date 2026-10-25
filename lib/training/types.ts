@@ -20,6 +20,12 @@ export interface WeekPace {
   sessions: number;
 }
 
+export interface MonthDistance {
+  /** Calendar month, YYYY-MM. */
+  month: string;
+  distanceKm: number;
+}
+
 export interface PaceTrend {
   direction: "faster" | "slower" | "steady" | "insufficient";
   recentSecPerKm: number | null;
@@ -46,6 +52,8 @@ export interface CardioSummary {
   paceTrend: PaceTrend;
   /** Oldest week first, eight ISO weeks ending this week. */
   weeklyPace: WeekPace[];
+  /** Oldest month first. Twelve calendar months ending this month. Empty months are 0. */
+  monthlyDistance: MonthDistance[];
   recentRuns: RecentRun[];
   bestOnePointFiveMile: BestEffort | null;
   bestFiveK: BestEffort | null;
