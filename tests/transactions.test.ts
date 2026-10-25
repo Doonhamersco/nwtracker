@@ -386,6 +386,80 @@ describe("importTransactions", () => {
     expect(rules[0].matchType).toBe("contains");
   });
 
+  it("uses built-in merchants for uncategorised lines and keeps a user rule in front", () => {
+    createCategoryRule({
+      pattern: "KFC",
+      matchType: "contains",
+      category: "Takeaway",
+      isTransfer: false,
+      priority: 500,
+    });
+
+    importTransactions({
+      account: "Chase UK",
+      statementMonth: "2026-09",
+      openingBalance: 100,
+      closingBalance: 70,
+      transactions: [
+        {
+          date: "2026-09-01",
+          description: "KFC DUMFRIES",
+          type: "Purchase",
+          amount_gbp: 5,
+          direction: "out",
+          balance_gbp: 95,
+        },
+        {
+          date: "2026-09-02",
+          description: "TESCO STORES",
+          type: "Purchase",
+          amount_gbp: 10,
+          direction: "out",
+          balance_gbp: 85,
+        },
+        {
+          date: "2026-09-03",
+          description: "Amazon",
+          type: "Purchase",
+          amount_gbp: 10,
+          direction: "out",
+          balance_gbp: 75,
+          category: "Gifts",
+        },
+        {
+          date: "2026-09-04",
+          description: "Round up",
+          type: "Transfer",
+          amount_gbp: 0.5,
+          direction: "out",
+          balance_gbp: 74.5,
+        },
+        {
+          date: "2026-09-05",
+          description: "Corner cafe",
+          type: "Purchase",
+          amount_gbp: 4.5,
+          direction: "out",
+          balance_gbp: 70,
+        },
+      ],
+    });
+
+    const rows = db.select().from(transactions).all();
+    const byDescription = Object.fromEntries(rows.map((row) => [row.descriptionRaw, row]));
+    expect(byDescription["KFC DUMFRIES"]?.category).toBe("Takeaway");
+    expect(byDescription["KFC DUMFRIES"]?.categorySource).toBe("rule");
+    expect(byDescription["TESCO STORES"]?.category).toBe("Groceries");
+    expect(byDescription["TESCO STORES"]?.categorySource).toBe("builtin");
+    expect(byDescription.Amazon?.category).toBe("Gifts");
+    expect(byDescription.Amazon?.categorySource).toBe("import");
+    expect(byDescription["Round up"]?.category).toBe("Savings (round-ups)");
+    expect(byDescription["Round up"]?.categorySource).toBe("builtin");
+    expect(byDescription["Round up"]?.isTransfer).toBe(true);
+    expect(byDescription["Corner cafe"]?.category).toBeNull();
+    expect(byDescription["Corner cafe"]?.categorySource).toBeNull();
+  });
+
   it("marks savings pots and round-ups as transfers", () => {
     importTransactions({
       account: "Chase UK",
