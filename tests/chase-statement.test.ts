@@ -163,6 +163,64 @@ describe("parseChaseStatementText", () => {
     ]);
   });
 
+  it("keeps a payment together when a page header sits in the middle of it", () => {
+    const pageBreak = fs.readFileSync(
+      path.join(process.cwd(), "tests/fixtures/chase-statement-page-break.txt"),
+      "utf8"
+    );
+    const preview = previewChaseStatement(pageBreak);
+    const { statement } = preview;
+
+    expect(statement.statementMonth).toBe("2026-09");
+    expect(statement.openingBalance).toBe(1000);
+    expect(statement.closingBalance).toBe(1396.5);
+    expect(preview.warnings).toEqual([]);
+    expect(statement.transactions.map((row) => [row.date, row.description, row.type, row.direction, row.amount_gbp, row.balance_gbp])).toEqual([
+      ["2026-09-05", "CORNER CAFE", "Purchase", "out", 3.5, 996.5],
+      ["2026-09-06", "Alex Example / From Alex Example - Sept rent", "Payment", "in", 400, 1396.5],
+    ]);
+    expect(statement.transactions.some((row) => /page \d+ of \d+|account number|sort code/i.test(row.description))).toBe(false);
+    expect(preview.balanceCheck.ok).toBe(true);
+    expect(preview.balanceCheck.delta).toBe(0);
+
+    let running = statement.openingBalance ?? 0;
+    for (const row of statement.transactions) {
+      running = Math.round((running + (row.direction === "out" ? -row.amount_gbp : row.amount_gbp)) * 100) / 100;
+      expect(row.balance_gbp).toBe(running);
+    }
+    expect(running).toBe(statement.closingBalance);
+  });
+
+  it("keeps a transaction date that sits on its own line under the column heading", () => {
+    const statement = parseChaseStatementText(`
+      1 September 2026 to 30 September 2026
+      Opening balance £100.00
+      Closing balance £90.00
+      Page 1 of 2
+      Account number: 00001111
+      Alex Example's Account statement
+      Sort code: 60-00-00
+      01 September 2026
+      Date Description Amount Balance
+      02 September 2026
+      CORNER CAFE
+      Purchase
+      -£10.00 £90.00
+    `);
+
+    expect(statement.warnings).toEqual([]);
+    expect(statement.transactions).toEqual([
+      expect.objectContaining({
+        date: "2026-09-02",
+        description: "CORNER CAFE",
+        type: "Purchase",
+        direction: "out",
+        amount_gbp: 10,
+        balance_gbp: 90,
+      }),
+    ]);
+  });
+
   it("does not abort the statement when one row has no amount", () => {
     const statement = parseChaseStatementText(`
       1 September 2026 to 30 September 2026

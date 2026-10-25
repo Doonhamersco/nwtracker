@@ -1,0 +1,37 @@
+Chase UK
+Statement
+
+1 September 2026 to 30 September 2026
+
+Account name
+Alex Example
+
+Opening balance
+£1,000.00
+Money in
+£400.00
+Money out
+£3.50
+Closing balance
+£1,396.50
+
+Page 1 of 9
+Account number: 00001111
+Alex Example's Account statement
+Sort code: 60-00-00
+01 September 2026
+Date Description Amount Balance
+05 Sep 2026 CORNER CAFE
+Purchase
+-£3.50 £996.50
+06 Sep 2026 Alex Example /
+Continued on the next page
+Page 2 of 9
+Account number: 00001111
+Alex Example's Account statement
+Sort code: 60-00-00
+01 September 2026
+Date Description Money out Money in Balance
+From Alex Example - Sept rent
++£400.00 £1,396.50
+Payment
