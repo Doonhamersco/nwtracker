@@ -21,7 +21,7 @@ vi.mock("@/lib/spending/pdf-text", () => ({
 const { parseChaseStatementText, ChaseStatementParseError } = await import(
   "@/lib/spending/chase-statement"
 );
-const { saveChaseStatement } = await import("@/lib/services/statement-import");
+const { previewChaseStatement, saveChaseStatement } = await import("@/lib/services/statement-import");
 const { importTransactions } = await import("@/lib/services/transactions");
 const { auth } = await import("@/lib/auth");
 const { extractPdfText } = await import("@/lib/spending/pdf-text");
@@ -136,9 +136,78 @@ describe("parseChaseStatementText", () => {
       ChaseStatementParseError
     );
   });
+
+  it("skips opening and closing balance rows and still reads the payments around them", () => {
+    const layouts = fs.readFileSync(
+      path.join(process.cwd(), "tests/fixtures/chase-statement-layouts.txt"),
+      "utf8"
+    );
+    const statement = parseChaseStatementText(layouts);
+
+    expect(statement.statementMonth).toBe("2026-09");
+    expect(statement.openingBalance).toBe(1000);
+    expect(statement.closingBalance).toBe(1216.1);
+    expect(statement.transactions.map((row) => [row.date, row.description, row.direction, row.amount_gbp, row.balance_gbp, row.type])).toEqual([
+      ["2026-09-01", "From EXAMPLE BROKER - SAMPLE CLIENT ACC", "in", 250, 1250, "Faster Payment"],
+      ["2026-09-02", "WRAPPED GROCER NAME", "out", 18.4, 1231.6, "Purchase"],
+      ["2026-09-03", "CAFE", "out", 4.5, 1227.1, "Purchase"],
+      ["2026-09-04", "MARKET STALL", "out", 10, 1217.1, "Purchase"],
+      ["2026-09-06", "CORNER SHOP", "out", 1, 1216.1, "Purchase"],
+    ]);
+    expect(statement.warnings).toEqual([
+      {
+        date: "2026-09-05",
+        description: "MYSTERY MERCHANT",
+        message: 'Skipped "MYSTERY MERCHANT" on 2026-09-05: could not read the amount.',
+      },
+    ]);
+  });
+
+  it("does not abort the statement when one row has no amount", () => {
+    const statement = parseChaseStatementText(`
+      1 September 2026 to 30 September 2026
+      Opening balance £100.00
+      01 Sep 2026 Opening balance
+      £100.00
+      01 Sep 2026 Opening balance From EXAMPLE BROKER - SAMPLE CLIENT ACC
+      01 Sep 2026 GOOD PAYMENT +£10.00 £110.00
+      Payment
+      02 Sep 2026 BROKEN ROW
+      Purchase
+      03 Sep 2026 Closing balance £110.00
+    `);
+    expect(statement.transactions.map((row) => row.description)).toEqual(["GOOD PAYMENT"]);
+    expect(statement.openingBalance).toBe(100);
+    expect(statement.closingBalance).toBe(110);
+    expect(statement.warnings.map((warning) => warning.description)).toEqual([
+      "From EXAMPLE BROKER - SAMPLE CLIENT ACC",
+      "BROKEN ROW",
+    ]);
+  });
 });
 
 describe("saveChaseStatement", () => {
+  it("lists skipped rows on the preview and still saves the readable ones", () => {
+    const text = `
+      1 September 2026 to 30 September 2026
+      Opening balance £40.00
+      01 Sep 2026 Opening balance From EXAMPLE BROKER - SAMPLE CLIENT ACC
+      +£10.00 £50.00
+      Faster Payment
+      02 Sep 2026 UNREADABLE MERCHANT
+      Purchase
+    `;
+    const preview = previewChaseStatement(text);
+    expect(preview.statement.transactions).toHaveLength(1);
+    expect(preview.statement.transactions[0]?.description).toBe("From EXAMPLE BROKER - SAMPLE CLIENT ACC");
+    expect(preview.warnings).toHaveLength(1);
+    expect(preview.warnings[0]?.message).toContain("UNREADABLE MERCHANT");
+
+    const saved = saveChaseStatement(text);
+    expect(saved.inserted).toBe(1);
+    expect(saved.skipped).toBe(0);
+  });
+
   it("skips lines that were already imported", () => {
     const first = saveChaseStatement(fixture);
     const second = saveChaseStatement(fixture);

@@ -6,11 +6,13 @@ import { Badge } from "@/components/ui/Badge"
 import { formatMonthLabel } from "@/lib/spending/dates"
 import { formatGbp } from "@/lib/spending/money"
 import type { BalanceCheck } from "@/lib/spending/balances"
+import type { StatementRowWarning } from "@/lib/spending/chase-statement"
 import type { ImportTransactionsInput } from "@/lib/validators/transactions"
 
 interface PreviewPayload {
   statement: ImportTransactionsInput
   balanceCheck: BalanceCheck
+  warnings?: StatementRowWarning[]
 }
 
 type Phase =
@@ -145,7 +147,7 @@ function Preview({
   onCancel: () => void
   onSave: () => void
 }) {
-  const { statement, balanceCheck } = preview
+  const { statement, balanceCheck, warnings = [] } = preview
   return (
     <div className="overflow-hidden rounded-2xl border border-border">
       <div className="flex flex-col gap-2 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -179,6 +181,18 @@ function Preview({
         <p className="border-b border-border px-4 py-2 text-xs text-muted">
           The running balance does not match the statement totals. You can still save; rows already imported are skipped.
         </p>
+      )}
+      {warnings.length > 0 && (
+        <div className="border-b border-border px-4 py-2 text-xs text-muted" role="status">
+          <p>
+            Skipped {warnings.length} row{warnings.length === 1 ? "" : "s"} that could not be read. The other transactions can still be saved.
+          </p>
+          <ul className="mt-1 list-disc pl-4">
+            {warnings.map((warning) => (
+              <li key={`${warning.date}-${warning.description}`}>{warning.message}</li>
+            ))}
+          </ul>
+        </div>
       )}
       <div className="max-h-80 overflow-auto">
         <table className="w-full text-left text-sm">

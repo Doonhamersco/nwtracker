@@ -1,0 +1,40 @@
+Chase UK
+Statement
+
+1 September 2026 to 30 September 2026
+
+Account name
+Alex Example
+
+Opening balance
+£1,000.00
+Money in
+£250.00
+Money out
+£33.90
+Closing balance
+£1,216.10
+
+Date Description Amount Balance
+01 Sep 2026 Opening balance From EXAMPLE BROKER - SAMPLE CLIENT ACC
++250.00
+1,250.00
+Faster Payment
+02 Sep 2026 WRAPPED
+GROCER NAME
+Purchase
+-£18.40
+£1,231.60
+03 Sep 2026 CAFE £-4.50 £1,227.10
+Purchase
+04 Sep 2026 MARKET STALL
+10.00
+1,217.10
+Purchase
+05 Sep 2026 MYSTERY MERCHANT
+Purchase
+06 Sep 2026 CORNER SHOP
+GBP 1.00 1,216.10
+Purchase
+30 Sep 2026 Closing balance
+£1,216.10
