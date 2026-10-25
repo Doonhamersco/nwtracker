@@ -82,15 +82,18 @@ export function parseChaseStatementText(text: string): ParsedChaseStatement {
   }
 
   const periodEnd = statementPeriodEnd(lines.join("\n"));
-  const openingFromSummary = labelledBalance(lines, /^opening balance\b/i);
-  const closingFromSummary = labelledBalance(lines, /^closing balance\b/i);
+  // Page headers repeat a bare statement date. Strip them before grouping,
+  // or that date starts a second transaction and steals the amount.
+  const body = stripPageChrome(lines);
+  const openingFromSummary = labelledBalance(body, /^opening balance\b/i);
+  const closingFromSummary = labelledBalance(body, /^closing balance\b/i);
 
   const transactions: ImportTransactionsInput["transactions"] = [];
   const warnings: StatementRowWarning[] = [];
   let previousBalance = openingFromSummary;
   let closingFromRows: number | undefined;
 
-  for (const block of transactionBlocks(lines)) {
+  for (const block of transactionBlocks(body)) {
     const parsed = parseBlock(block, previousBalance);
     if (!parsed) continue;
     if (parsed.opening !== undefined) previousBalance = parsed.opening;
@@ -151,6 +154,90 @@ function labelledBalance(lines: string[], label: RegExp): number | undefined {
     if (fromNext !== undefined && stripMoney(next).length === 0) return fromNext;
   }
   return undefined;
+}
+
+const PAGE_MARKER_RE = /^page\s+\d+\s+of\s+\d+\b/i;
+const ACCOUNT_NUMBER_RE = /^account number\b/i;
+const SORT_CODE_RE = /^sort code\b/i;
+const ACCOUNT_STATEMENT_RE = /\baccount statement\b/i;
+const CONTINUED_RE = /^continued\b/i;
+const HEADING_WORDS = new Set([
+  "date",
+  "description",
+  "amount",
+  "balance",
+  "money",
+  "in",
+  "out",
+  "transaction",
+  "details",
+  "type",
+]);
+
+/**
+ * Drop repeated Chase page furniture so a transaction that starts on one
+ * page and finishes on the next stays one block. A bare date is removed
+ * only when it sits against that furniture (the statement date in the
+ * header). A dated payee line is kept.
+ */
+function stripPageChrome(lines: string[]): string[] {
+  const period = lines.map((line) => isStatementPeriodLine(line));
+  const header = lines.map((line, index) => period[index] || isHeaderLine(line));
+  const columnHeading = lines.map((line) => isColumnHeading(line));
+  const bareDate = lines.map((line) => isBareDateLine(line));
+  const drop = header.map((isHeader, index) => isHeader || columnHeading[index]);
+
+  for (let i = 0; i < lines.length; i++) {
+    if (!bareDate[i] || drop[i]) continue;
+    // A column heading sits directly above the first transaction, whose date
+    // may be on its own line. Only a header/footer line marks a bare date as
+    // the repeated statement date.
+    if (adjacentToChrome(i, header, bareDate)) drop[i] = true;
+  }
+
+  return lines.filter((_, index) => !drop[index]);
+}
+
+function adjacentToChrome(index: number, chrome: boolean[], bareDate: boolean[]): boolean {
+  for (const direction of [-1, 1]) {
+    for (let cursor = index + direction; cursor >= 0 && cursor < chrome.length; cursor += direction) {
+      if (chrome[cursor]) return true;
+      if (bareDate[cursor]) continue;
+      break;
+    }
+  }
+  return false;
+}
+
+function isHeaderLine(line: string): boolean {
+  if (PAGE_MARKER_RE.test(line)) return true;
+  if (ACCOUNT_NUMBER_RE.test(line)) return true;
+  if (SORT_CODE_RE.test(line)) return true;
+  if (CONTINUED_RE.test(line)) return true;
+  return ACCOUNT_STATEMENT_RE.test(line) && !isTransactionStart(line);
+}
+
+function isColumnHeading(line: string): boolean {
+  const words = line.trim().toLowerCase().replace(/\s+/g, " ").split(" ").filter(Boolean);
+  if (words.length < 2) return false;
+  if (!words.every((word) => HEADING_WORDS.has(word))) return false;
+  return words.includes("date") && words.some((word) => word === "description" || word === "amount" || word === "balance");
+}
+
+function isBareDateLine(line: string): boolean {
+  const match = DATE_LINE_RE.exec(line.trim());
+  if (!match) return false;
+  return (match[4] ?? "").trim().length === 0;
+}
+
+function isStatementPeriodLine(line: string): boolean {
+  if (!PERIOD_RE.test(line)) return false;
+  const rest = line
+    .replace(PERIOD_RE, " ")
+    .replace(/\b(statement|period|date|from|to)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return rest.length === 0;
 }
 
 function transactionBlocks(lines: string[]): string[][] {
