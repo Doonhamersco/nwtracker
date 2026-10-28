@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     console.error("[POST /api/spending/recurring]", err);
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to add subscription", detail: message },
+      { error: "Failed to add expense", detail: message },
       { status: 500 }
     );
   }

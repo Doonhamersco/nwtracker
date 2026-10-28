@@ -18,7 +18,7 @@ export function RecurringPanel({
     <div className="flex flex-col gap-4">
       {duplicates.length > 0 && (
         <div className="rounded-2xl border border-negative/40 bg-negative/10 px-5 py-4 text-sm">
-          <p className="font-medium text-text">Possible duplicate subscriptions</p>
+          <p className="font-medium text-text">Possible duplicate expenses</p>
           <ul className="mt-2 space-y-1 text-muted">
             {duplicates.map((pair) => (
               <li key={pair.ids.join(":")}>
@@ -31,7 +31,7 @@ export function RecurringPanel({
 
       <Card>
         <h2 className="font-display text-xl font-medium text-text">
-          Recurring payments not in Subscriptions
+          Recurring payments not in Expenses
         </h2>
         <p className="mt-1 text-sm text-muted">
           Same merchant about once a month, or the same amount more than once.
@@ -76,11 +76,11 @@ function RecurringRow({
       })
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string }
-        throw new Error(data.error ?? "Could not add subscription")
+        throw new Error(data.error ?? "Could not add expense")
       }
       onAdded()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add subscription")
+      setError(err instanceof Error ? err.message : "Could not add expense")
     } finally {
       setSaving(false)
     }
@@ -109,7 +109,7 @@ function RecurringRow({
         disabled={saving}
         className="shrink-0 rounded-lg bg-accent px-3 py-2 text-sm text-bg-base transition-colors hover:bg-accent-hover disabled:opacity-60"
       >
-        {saving ? "Adding…" : "Add to subscriptions"}
+        {saving ? "Adding…" : "Add to expenses"}
       </button>
     </li>
   )

@@ -88,7 +88,7 @@ export function updateSubscription(
     .from(subscriptions)
     .where(eq(subscriptions.id, id))
     .all()[0];
-  if (!existing) throw new Error(`Subscription not found: ${id}`);
+  if (!existing) throw new Error(`Expense not found: ${id}`);
 
   const cancellation =
     input.status !== undefined || input.cancelledAt !== undefined

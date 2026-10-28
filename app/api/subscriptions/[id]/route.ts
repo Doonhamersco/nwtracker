@@ -16,7 +16,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     const item = getSubscriptionById(id);
     if (!item) {
       return NextResponse.json(
-        { error: "Subscription not found" },
+        { error: "Expense not found" },
         { status: 404 }
       );
     }
@@ -25,7 +25,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     console.error("[GET /api/subscriptions/[id]]", err);
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to get subscription", detail: message },
+      { error: "Failed to get expense", detail: message },
       { status: 500 }
     );
   }
@@ -59,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: message }, { status: 404 });
     }
     return NextResponse.json(
-      { error: "Failed to update subscription", detail: message },
+      { error: "Failed to update expense", detail: message },
       { status: 500 }
     );
   }
@@ -74,7 +74,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     console.error("[DELETE /api/subscriptions/[id]]", err);
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to delete subscription", detail: message },
+      { error: "Failed to delete expense", detail: message },
       { status: 500 }
     );
   }

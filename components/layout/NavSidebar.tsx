@@ -50,7 +50,7 @@ const navSections: Array<{
       { href: "/assets", label: "Accounts", icon: Wallet },
       { href: "/finance/assets", label: "Assets", icon: Gem },
       { href: "/spending", label: "Spending", icon: ReceiptPoundSterling },
-      { href: "/subscriptions", label: "Subscriptions", icon: CreditCard },
+      { href: "/expenses", label: "Expenses", icon: CreditCard },
     ],
   },
   {

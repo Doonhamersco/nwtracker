@@ -13,7 +13,7 @@ export async function GET() {
     console.error("[GET /api/subscriptions]", err);
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to list subscriptions", detail: message },
+      { error: "Failed to list expenses", detail: message },
       { status: 500 }
     );
   }
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     console.error("[POST /api/subscriptions]", err);
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to create subscription", detail: message },
+      { error: "Failed to create expense", detail: message },
       { status: 500 }
     );
   }

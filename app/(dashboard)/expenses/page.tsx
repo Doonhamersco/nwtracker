@@ -67,7 +67,7 @@ export default function SubscriptionsPage() {
     try {
       setError(null)
       const res = await fetch("/api/subscriptions")
-      if (!res.ok) throw new Error("Failed to load subscriptions")
+      if (!res.ok) throw new Error("Failed to load expenses")
       const data = (await res.json()) as SubscriptionWithFiles[]
       setItems(data)
     } catch (err) {
@@ -80,7 +80,7 @@ export default function SubscriptionsPage() {
   async function handleDelete(id: string) {
     try {
       const res = await fetch(`/api/subscriptions/${id}`, { method: "DELETE" })
-      if (!res.ok && res.status !== 204) throw new Error("Failed to delete subscription")
+      if (!res.ok && res.status !== 204) throw new Error("Failed to delete expense")
       setItems((prev) => prev.filter((item) => item.subscription.id !== id))
       if (formMode && formMode.kind === "edit" && formMode.subscriptionId === id) {
         setFormMode(null)
@@ -123,14 +123,14 @@ export default function SubscriptionsPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <h1 className="font-display text-3xl font-medium tracking-tight text-text">
-          Subscriptions
+          Expenses
         </h1>
         {!formMode && (
           <button
             onClick={() => setFormMode({ kind: "create" })}
             className="bg-accent text-bg-base rounded-lg px-4 py-2 text-sm hover:bg-accent-hover transition-colors"
           >
-            + Add Subscription
+            + Add expense
           </button>
         )}
       </div>
@@ -154,7 +154,7 @@ export default function SubscriptionsPage() {
       {formMode && (
         <div ref={formRef} className="rounded-2xl border border-border bg-bg-card p-5">
           <h2 className="mb-4 text-base font-semibold text-text">
-            {formMode.kind === "create" ? "Add Subscription" : "Edit Subscription"}
+            {formMode.kind === "create" ? "Add expense" : "Edit expense"}
           </h2>
           <SubscriptionForm
             key={formMode.kind === "create" ? "new" : formMode.subscriptionId}
@@ -218,7 +218,7 @@ export default function SubscriptionsPage() {
             <CreditCard className="text-accent" size={28} />
           </div>
           <div>
-            <p className="font-semibold text-text">Add your first subscription</p>
+            <p className="font-semibold text-text">Add your first expense</p>
             <p className="mt-1 text-sm text-muted">
               Track Netflix, gym, software, and anything else you pay for regularly.
             </p>
@@ -227,13 +227,13 @@ export default function SubscriptionsPage() {
             onClick={() => setFormMode({ kind: "create" })}
             className="bg-accent text-bg-base rounded-lg px-4 py-2 text-sm hover:bg-accent-hover transition-colors"
           >
-            Add Subscription
+            Add expense
           </button>
         </div>
       )}
 
       {!loading && !error && items.length > 0 && visibleItems.length === 0 && (
-        <p className="text-sm text-muted">No {filter} subscriptions.</p>
+        <p className="text-sm text-muted">No {filter} expenses.</p>
       )}
 
       {!loading && !error && visibleItems.length > 0 && (
