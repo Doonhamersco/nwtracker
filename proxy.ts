@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { proxyDecision } from "@/lib/auth/proxy-access"
+import { pagePathContainingSubscriptions } from "@/lib/routes/expenses-path"
 import { stampUserHeader } from "@/lib/users/headers"
 import { isEmailAllowed } from "@/lib/users/identity"
 
 export default auth((req) => {
+  const expensesPath = pagePathContainingSubscriptions(req.nextUrl.pathname)
+  if (expensesPath) {
+    const url = req.nextUrl.clone()
+    url.pathname = expensesPath
+    return NextResponse.redirect(url)
+  }
+
   const sessionEmail = req.auth?.user?.email
   const decision = proxyDecision({
     pathname: req.nextUrl.pathname,

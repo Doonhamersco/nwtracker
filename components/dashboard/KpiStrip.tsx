@@ -149,7 +149,7 @@ export function KpiStrip({
       <LevelTile label="Assets" stat={assets} />
       <LevelTile label="Debt" stat={debt} downIsGood />
       <LevelTile
-        label="Subscriptions"
+        label="Expenses"
         stat={subscriptions}
         suffix="/mo"
         digits={2}

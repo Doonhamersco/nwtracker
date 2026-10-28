@@ -177,7 +177,7 @@ export function SubscriptionForm({
 
       if (!res.ok) {
         const data = (await res.json()) as { error?: string; detail?: string }
-        throw new Error(data.detail ?? data.error ?? "Failed to save subscription")
+        throw new Error(data.detail ?? data.error ?? "Failed to save expense")
       }
 
       const saved = (await res.json()) as { id: string }
@@ -231,7 +231,7 @@ export function SubscriptionForm({
           {logoPreview ? (
             <div className="relative h-16 w-16 overflow-hidden rounded-xl border border-border bg-bg-base">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={logoPreview} alt="Subscription logo" className="h-full w-full object-cover" />
+              <img src={logoPreview} alt="Expense logo" className="h-full w-full object-cover" />
               <button
                 type="button"
                 onClick={() => {
@@ -375,7 +375,7 @@ export function SubscriptionForm({
             ? "Saving…"
             : isEdit
               ? "Save Changes"
-              : "Add Subscription"}
+              : "Add expense"}
         </button>
       </div>
     </form>
