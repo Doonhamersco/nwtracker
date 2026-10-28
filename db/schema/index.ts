@@ -10,5 +10,6 @@ export * from "./diaries";
 export * from "./profile";
 export * from "./subscriptions";
 export * from "./transactions";
+export * from "./manual-spending";
 export * from "./career-plan";
 export * from "./physical-assets";
