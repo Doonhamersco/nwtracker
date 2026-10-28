@@ -51,6 +51,8 @@ function SettingsPageInner() {
   const tabParam = searchParams.get("tab")
   const [accounts, setAccounts] = useState<AccountRow[]>([])
   const [accountsLoading, setAccountsLoading] = useState(true)
+  const [mergeError, setMergeError] = useState<string | null>(null)
+  const [mergingId, setMergingId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [hevyStatus, setHevyStatus] = useState<HevyStatus>("loading")
   const [stravaStatus, setStravaStatus] = useState<StravaStatus>("loading")
@@ -113,6 +115,34 @@ function SettingsPageInner() {
   async function handleArchive(id: string) {
     await fetch(`/api/accounts/${id}`, { method: "DELETE" })
     await fetchAccounts()
+  }
+
+  async function handleMerge(sourceId: string, targetId: string) {
+    const source = accounts.find((row) => row.id === sourceId)
+    const target = accounts.find((row) => row.id === targetId)
+    if (!source || !target) return
+    const confirmed = window.confirm(
+      `Merge “${source.name}” into “${target.name}”? Balances, transactions, and statement imports move onto ${target.name}. ${source.name} is then deleted.`
+    )
+    if (!confirmed) return
+
+    setMergeError(null)
+    setMergingId(sourceId)
+    try {
+      const res = await fetch(`/api/accounts/${sourceId}/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetId }),
+      })
+      const data = (await res.json().catch(() => null)) as { error?: string; reason?: string } | null
+      if (!res.ok) {
+        setMergeError(data?.reason || data?.error || "Merge failed")
+        return
+      }
+      await fetchAccounts()
+    } finally {
+      setMergingId(null)
+    }
   }
 
   async function handleActivate(id: string) {
@@ -214,6 +244,12 @@ function SettingsPageInner() {
             </Card>
           )}
 
+          {mergeError && (
+            <p className="rounded-lg border border-negative/40 bg-negative/10 px-3 py-2 text-sm text-negative">
+              {mergeError}
+            </p>
+          )}
+
           <Card className="p-0 overflow-hidden">
             {accountsLoading ? (
               <div className="flex flex-col gap-2 p-5">
@@ -276,21 +312,45 @@ function SettingsPageInner() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {acc.isActive ? (
-                          <button
-                            onClick={() => handleArchive(acc.id)}
-                            className="text-xs text-muted hover:text-negative transition-colors"
-                          >
-                            Archive
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleActivate(acc.id)}
-                            className="text-xs text-muted hover:text-positive transition-colors"
-                          >
-                            Activate
-                          </button>
-                        )}
+                        <div className="flex items-center justify-end gap-3">
+                          {accounts.length > 1 && (
+                            <select
+                              aria-label={`Merge ${acc.name} into`}
+                              defaultValue=""
+                              disabled={mergingId === acc.id}
+                              onChange={(event) => {
+                                const targetId = event.target.value
+                                event.target.value = ""
+                                if (targetId) void handleMerge(acc.id, targetId)
+                              }}
+                              className="max-w-[10rem] rounded-lg border border-border bg-bg-base px-2 py-1 text-xs text-text"
+                            >
+                              <option value="">Merge into…</option>
+                              {accounts
+                                .filter((other) => other.id !== acc.id)
+                                .map((other) => (
+                                  <option key={other.id} value={other.id}>
+                                    {other.name}
+                                  </option>
+                                ))}
+                            </select>
+                          )}
+                          {acc.isActive ? (
+                            <button
+                              onClick={() => handleArchive(acc.id)}
+                              className="text-xs text-muted hover:text-negative transition-colors"
+                            >
+                              Archive
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleActivate(acc.id)}
+                              className="text-xs text-muted hover:text-positive transition-colors"
+                            >
+                              Activate
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
