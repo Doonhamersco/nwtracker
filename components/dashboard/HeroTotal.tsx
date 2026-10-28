@@ -43,7 +43,7 @@ export function HeroTotal({
         <p className={`text-sm ${change >= 0 ? "text-positive" : "text-negative"}`}>
           {change >= 0 ? "+" : "−"}£
           {Math.abs(change).toLocaleString("en-GB", { maximumFractionDigits: 0 })}{" "}
-          since last snapshot
+          since last month
         </p>
       )}
     </div>
