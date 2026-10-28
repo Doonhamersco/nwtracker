@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useAccentColor } from "@/components/layout/ProfileProvider";
 import { paletteFromAccent } from "@/lib/profile-theme";
 import { timeframeCutoff, type AccountMove, type Timeframe } from "@/lib/dashboard-kpis";
+import { useDashboardPrefs } from "./useDashboardPrefs";
 import { ChartTooltip } from "./chart/ChartTooltip";
 import { clusterEvents } from "./chart/clusterEvents";
 import { EventLabel } from "./chart/EventMarkers";
@@ -61,6 +62,7 @@ export function NetWorthChart({
   const accentColor = useAccentColor();
   const palette = paletteFromAccent(accentColor);
   const gradientId = useId().replace(/:/g, "");
+  const { showEvents, setShowEvents } = useDashboardPrefs();
   const [visible, setVisible] = useState<Set<SeriesKey>>(new Set(["netWorth"]));
   const [activeClusterId, setActiveClusterId] = useState<string | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -155,7 +157,9 @@ export function NetWorthChart({
   const domainMax = chartData[chartData.length - 1]?.ts ?? 0;
   const plotWidth = Math.max(0, containerWidth - LEFT_AXIS - rightReserve);
 
-  const visibleEvents = events.filter((event) => !cutoff || new Date(event.date) >= cutoff);
+  const visibleEvents = showEvents
+    ? events.filter((event) => !cutoff || new Date(event.date) >= cutoff)
+    : [];
   const clusters = clusterEvents(
     visibleEvents.map((event) => ({
       ...event,
@@ -209,6 +213,31 @@ export function NetWorthChart({
             </button>
           );
         })}
+        <button
+          type="button"
+          aria-pressed={showEvents}
+          onClick={() => setShowEvents((current) => !current)}
+          className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+            showEvents
+              ? "border"
+              : "border border-border-strong bg-transparent text-placeholder hover:border-muted hover:text-muted"
+          }`}
+          style={
+            showEvents
+              ? {
+                  backgroundColor: `${accentColor}18`,
+                  borderColor: `${accentColor}80`,
+                  color: accentColor,
+                }
+              : undefined
+          }
+        >
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: showEvents ? accentColor : "#64748b" }}
+          />
+          Events
+        </button>
       </div>
 
       <div
