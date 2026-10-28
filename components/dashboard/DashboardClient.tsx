@@ -20,7 +20,9 @@ import type { AccountMove, SeriesPoint } from "@/lib/dashboard-kpis";
 import {
   findLatestCommittedSnapshot,
   physicalAssetsInDisplayedWorth,
+  snapshotAsOfLastMonth,
 } from "@/lib/engine/net-worth";
+import { londonToday } from "@/lib/training/dates";
 
 interface SnapshotSummary {
   id: string;
@@ -64,8 +66,6 @@ interface DashboardClientProps {
   fitnessSummary?: string;
   /** Current physical-asset total, added to the live net worth figure. */
   physicalAssetsGbp?: number;
-  /** Physical assets already included in the previous check-in's account valuations. */
-  previousPhysicalAssetsGbp?: number;
   physicalHoldings?: Array<{ category: string; valueGbp: number }>;
 }
 
@@ -115,7 +115,6 @@ export function DashboardClient({
   activeSubscriptionCount = 0,
   fitnessSummary,
   physicalAssetsGbp = 0,
-  previousPhysicalAssetsGbp = 0,
   physicalHoldings = [],
 }: DashboardClientProps) {
   const { timeframe, setTimeframe, hideDebt, setHideDebt, hideAssets, setHideAssets } =
@@ -141,7 +140,10 @@ export function DashboardClient({
   );
 
   const latestSnapshot = sortedSnapshots[0] ?? null;
-  const previousSnapshot = sortedSnapshots[1] ?? null;
+  const monthAgoSnapshot = useMemo(
+    () => snapshotAsOfLastMonth(initialSnapshots, londonToday(new Date())),
+    [initialSnapshots]
+  );
   const latestCommittedId = useMemo(
     () => findLatestCommittedSnapshot(initialSnapshots)?.id ?? null,
     [initialSnapshots]
@@ -155,21 +157,13 @@ export function DashboardClient({
     accountById,
     hideDebt
   );
-  const prevFromValuations = computeNetWorthFromValuations(
-    previousValuations,
-    accountById,
-    hideDebt
-  );
 
   const heroNetWorth =
     fromValuations !== null
       ? fromValuations + (hideAssets ? 0 : physicalAssetsGbp)
       : adjustSnapshotWorth(latestSnapshot, hideDebt, hideAssets);
 
-  const heroPrevious =
-    prevFromValuations !== null
-      ? prevFromValuations + (hideAssets ? 0 : previousPhysicalAssetsGbp)
-      : adjustSnapshotWorth(previousSnapshot, hideDebt, hideAssets);
+  const heroPrevious = adjustSnapshotWorth(monthAgoSnapshot, hideDebt, hideAssets);
 
   function adjustSnapshotWorth(
     snapshot: SnapshotSummary | null,

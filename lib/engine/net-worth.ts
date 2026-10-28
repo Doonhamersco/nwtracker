@@ -118,6 +118,46 @@ function takenAtMs(value: string): number {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
+function snapshotDay(takenAt: string): string {
+  return takenAt.trim().slice(0, 10);
+}
+
+/**
+ * The same calendar day in the previous month. A day that does not exist
+ * there, such as 31 March, lands on the last day of that month.
+ */
+export function sameDateLastMonth(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const previous = new Date(Date.UTC(year, month - 2, 1));
+  const daysInMonth = new Date(
+    Date.UTC(previous.getUTCFullYear(), previous.getUTCMonth() + 1, 0)
+  ).getUTCDate();
+  const cutoff = new Date(
+    Date.UTC(previous.getUTCFullYear(), previous.getUTCMonth(), Math.min(day, daysInMonth))
+  );
+  return cutoff.toISOString().slice(0, 10);
+}
+
+/**
+ * Latest committed snapshot on or before the same date last month.
+ * When every snapshot is newer than that, the earliest one is the baseline.
+ */
+export function snapshotAsOfLastMonth<T extends SnapshotWorth>(
+  snapshots: T[],
+  asOfDate: string
+): T | null {
+  const committed = snapshots.filter(
+    (snapshot) => !snapshot.isPartial && snapshot.netWorthGbp !== null
+  );
+  if (committed.length === 0) return null;
+
+  const cutoff = sameDateLastMonth(asOfDate);
+  const onOrBefore = committed.filter((snapshot) => snapshotDay(snapshot.takenAt) <= cutoff);
+  const pool = onOrBefore.length > 0 ? onOrBefore : committed;
+  const ranked = [...pool].sort((a, b) => takenAtMs(a.takenAt) - takenAtMs(b.takenAt));
+  return onOrBefore.length > 0 ? ranked[ranked.length - 1] : ranked[0];
+}
+
 function roundMoney(value: number): number {
   return Math.round(value * 100) / 100;
 }

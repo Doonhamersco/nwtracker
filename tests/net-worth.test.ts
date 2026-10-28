@@ -8,6 +8,8 @@ import {
   findLatestCommittedSnapshot,
   physicalAssetsInDisplayedWorth,
   projectGoalCompletion,
+  sameDateLastMonth,
+  snapshotAsOfLastMonth,
   withCurrentPhysicalAssets,
 } from "@/lib/engine/net-worth";
 
@@ -162,6 +164,70 @@ describe("withCurrentPhysicalAssets", () => {
       9000
     );
     expect(physicalAssetsInDisplayedWorth(points[0], latestId, 1500)).toBe(0);
+  });
+});
+
+describe("snapshotAsOfLastMonth", () => {
+  function point(id: string, takenAt: string, netWorthGbp: number | null, isPartial = false) {
+    return { id, takenAt, netWorthGbp, isPartial };
+  }
+
+  it("uses the same calendar date in the previous month", () => {
+    expect(sameDateLastMonth("2026-10-28")).toBe("2026-09-28");
+    expect(sameDateLastMonth("2026-01-15")).toBe("2025-12-15");
+    expect(sameDateLastMonth("2025-03-31")).toBe("2025-02-28");
+    expect(sameDateLastMonth("2024-03-31")).toBe("2024-02-29");
+  });
+
+  it("picks the latest snapshot on or before that date, not the previous check-in", () => {
+    const snapshots = [
+      point("aug", "2026-08-02 12:00:00", 10000),
+      point("sep-early", "2026-09-01 09:00:00", 11000),
+      point("sep-cutoff", "2026-09-28 18:00:00", 12000),
+      point("sep-late", "2026-09-29 09:00:00", 13000),
+      point("oct", "2026-10-20 09:00:00", 21468),
+    ];
+
+    expect(snapshotAsOfLastMonth(snapshots, "2026-10-28")?.id).toBe("sep-cutoff");
+  });
+
+  it("keeps a snapshot taken later on the cutoff day", () => {
+    const snapshots = [
+      point("morning", "2026-09-28 08:00:00", 10000),
+      point("evening", "2026-09-28 20:00:00", 11000),
+    ];
+
+    expect(snapshotAsOfLastMonth(snapshots, "2026-10-28")?.id).toBe("evening");
+  });
+
+  it("falls back to the earliest snapshot when none are a month old", () => {
+    const snapshots = [
+      point("recent-b", "2026-10-20 09:00:00", 21468),
+      point("recent-a", "2026-10-05 09:00:00", 20000),
+    ];
+
+    expect(snapshotAsOfLastMonth(snapshots, "2026-10-28")?.id).toBe("recent-a");
+  });
+
+  it("ignores partial snapshots and snapshots without a net worth", () => {
+    const snapshots = [
+      point("partial-old", "2026-08-01 09:00:00", 9000, true),
+      point("empty", "2026-09-01 09:00:00", null),
+      point("sep", "2026-09-15 09:00:00", 15000),
+      point("oct", "2026-10-20 09:00:00", 16000),
+    ];
+
+    expect(snapshotAsOfLastMonth(snapshots, "2026-10-28")?.id).toBe("sep");
+  });
+
+  it("returns null when there is no committed snapshot", () => {
+    expect(snapshotAsOfLastMonth([], "2026-10-28")).toBeNull();
+    expect(
+      snapshotAsOfLastMonth(
+        [point("partial", "2026-08-01 09:00:00", 9000, true)],
+        "2026-10-28"
+      )
+    ).toBeNull();
   });
 });
 

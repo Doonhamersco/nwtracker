@@ -84,7 +84,6 @@ export default function OverviewPreviewPage() {
         activeSubscriptionCount={4}
         fitnessSummary={fitnessSummaryLine(previewTrainingConnected())}
         physicalAssetsGbp={physicalAssetsGbp}
-        previousPhysicalAssetsGbp={0}
         physicalHoldings={[{ category: "vehicle", valueGbp: physicalAssetsGbp }]}
       />
     </PreviewFrame>

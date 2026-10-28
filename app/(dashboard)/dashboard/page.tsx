@@ -137,7 +137,6 @@ export default async function DashboardPage() {
       monthlySubscriptionGbp={activeMonthlyTotal(subscriptionRows)}
       activeSubscriptionCount={subscriptionRows.filter((row) => row.status === "active").length}
       physicalAssetsGbp={physicalAssetsGbp}
-      previousPhysicalAssetsGbp={previousSnapshot?.physicalAssetsGbp ?? 0}
       physicalHoldings={physicalHoldings.map((asset) => ({
         category: asset.category,
         valueGbp: asset.valueGbp,
