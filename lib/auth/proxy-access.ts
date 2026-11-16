@@ -5,6 +5,7 @@ export type ProxyDecision = "allow" | "redirect" | "unauthorized";
 /**
  * Session gate for the Next.js proxy.
  * `/api/import/transactions` is exempt here and authenticates itself.
+ * `/api/public/leaderboard` is open so the quiz sites can post scores.
  * `/api/hevy/sync` accepts a logged-in session or the HEVY_SYNC_TOKEN bearer.
  * Every other `/api/hevy/*` route requires a session.
  * Dev layout previews under `/preview` stay open outside production.
@@ -23,6 +24,7 @@ export function proxyDecision(input: {
     pathname.startsWith("/login") ||
     pathname.startsWith("/api/auth") ||
     pathname === "/api/import/transactions" ||
+    pathname.startsWith("/api/public/leaderboard") ||
     (nodeEnv !== "production" && pathname.startsWith("/preview"))
   ) {
     return "allow";
