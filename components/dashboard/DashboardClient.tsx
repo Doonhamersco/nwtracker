@@ -23,6 +23,11 @@ import {
   snapshotAsOfLastMonth,
 } from "@/lib/engine/net-worth";
 import { londonToday } from "@/lib/training/dates";
+import {
+  formatLastCheckinLine,
+  pickLatestCheckin,
+  type CheckinStamp,
+} from "@/lib/checkin-time";
 
 interface SnapshotSummary {
   id: string;
@@ -67,6 +72,11 @@ interface DashboardClientProps {
   /** Current physical-asset total, added to the live net worth figure. */
   physicalAssetsGbp?: number;
   physicalHoldings?: Array<{ category: string; valueGbp: number }>;
+  /**
+   * Newest snapshot from the signed-in user's database.
+   * Omit to derive it from `initialSnapshots` (layout previews).
+   */
+  latestCheckin?: CheckinStamp | null;
 }
 
 function computeNetWorthFromValuations(
@@ -116,6 +126,7 @@ export function DashboardClient({
   fitnessSummary,
   physicalAssetsGbp = 0,
   physicalHoldings = [],
+  latestCheckin,
 }: DashboardClientProps) {
   const { timeframe, setTimeframe, hideDebt, setHideDebt, hideAssets, setHideAssets } =
     useDashboardPrefs();
@@ -151,6 +162,11 @@ export function DashboardClient({
   const lastCheckinAt =
     sortedSnapshots.find((snapshot) => !snapshot.isPartial)?.takenAt ?? null;
   const dueLabel = useCheckinDueLabel(lastCheckinAt);
+  const lastCheckinLine = formatLastCheckinLine(
+    latestCheckin === undefined
+      ? pickLatestCheckin(initialSnapshots)
+      : latestCheckin
+  );
 
   const fromValuations = computeNetWorthFromValuations(
     latestValuations,
@@ -276,6 +292,9 @@ export function DashboardClient({
                 </span>
               )}
             </Link>
+            {lastCheckinLine && (
+              <p className="text-xs leading-5 text-muted lg:text-right">{lastCheckinLine}</p>
+            )}
           </div>
         </div>
         <div className="mt-6">

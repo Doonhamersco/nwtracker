@@ -47,9 +47,13 @@ vi.mock("@/lib/hevy/client", () => ({
 }));
 
 // Now import the service AFTER mocks are in place
-const { buildCheckinDraft, commitCheckin, getSnapshotHistory, fillMissingHevyReadingsForLatestSnapshot } = await import(
-  "@/lib/services/checkin"
-);
+const {
+  buildCheckinDraft,
+  commitCheckin,
+  getLatestCheckin,
+  getSnapshotHistory,
+  fillMissingHevyReadingsForLatestSnapshot,
+} = await import("@/lib/services/checkin");
 const clientModule = await import("@/db/client");
 const { db } = clientModule;
 const sqlite = (clientModule as unknown as { _sqlite: import("better-sqlite3").Database })._sqlite;
@@ -378,6 +382,34 @@ describe("getSnapshotHistory", () => {
     expect(netWorths[0]).toBe(15000);
     expect(netWorths[1]).toBe(12000);
     expect(netWorths[2]).toBe(10000);
+  });
+});
+
+describe("getLatestCheckin", () => {
+  it("returns the newest row, including a later partial", () => {
+    db.insert(snapshots)
+      .values({
+        id: randomUUID(),
+        takenAt: "2026-11-28T19:42:00.000Z",
+        isPartial: false,
+      })
+      .run();
+    db.insert(snapshots)
+      .values({
+        id: randomUUID(),
+        takenAt: "2026-11-28 19:50:00",
+        isPartial: true,
+      })
+      .run();
+
+    expect(getLatestCheckin()).toEqual({
+      takenAt: "2026-11-28 19:50:00",
+      isPartial: true,
+    });
+  });
+
+  it("returns null when the user has no snapshots", () => {
+    expect(getLatestCheckin()).toBeNull();
   });
 });
 
