@@ -159,6 +159,15 @@ describe("proxy route protection", () => {
     ).toBe("allow")
   })
 
+  it("lets the public quiz leaderboard through without a session", () => {
+    expect(
+      proxyDecision({ pathname: "/api/public/leaderboard/legislation", isLoggedIn: false })
+    ).toBe("allow")
+    expect(
+      proxyDecision({ pathname: "/api/public/leaderboard/elements", isLoggedIn: false })
+    ).toBe("allow")
+  })
+
   it("keeps dev layout previews open and closes them in production", () => {
     expect(
       proxyDecision({

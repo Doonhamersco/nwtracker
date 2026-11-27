@@ -54,6 +54,12 @@ A successful response looks like `{ "inserted": 2, "skipped": 0, "balanceCheck":
 
 Signed-in users can upload a Chase UK statement PDF on the Spending page. The server reads the PDF, shows a preview (date, description, amount, in or out), then saves through this same import, so uploading a statement again skips lines that are already stored.
 
+## Public quiz leaderboards
+
+`GET` and `POST /api/public/leaderboard/:game` do not require a Google sign-in. `:game` is `legislation` or `elements`. Scores are kept on the Fly volume at `/data/leaderboard/<game>.json`, outside each person's data directory. Any website origin may call them.
+
+`POST` body: `{ "name": "Euan", "timeMs": 123456 }`. `timeMs` is an integer from 5000 to 7200000, and the name is 1–20 characters. A new score responds with `{ "ok": true, "rank": 1, "entries": [] }` where `entries` is the top 20 fastest. `GET` returns `{ "game": "legislation", "entries": [] }` in that same order.
+
 ## Getting Started
 
 First, run the development server:
