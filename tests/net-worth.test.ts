@@ -6,9 +6,9 @@ import {
   computeMoMChange,
   computeSavingsRate,
   findLatestCommittedSnapshot,
+  formatSnapshotDayLabel,
   physicalAssetsInDisplayedWorth,
   projectGoalCompletion,
-  sameDateLastMonth,
   snapshotAsOfLastMonth,
   withCurrentPhysicalAssets,
 } from "@/lib/engine/net-worth";
@@ -172,14 +172,29 @@ describe("snapshotAsOfLastMonth", () => {
     return { id, takenAt, netWorthGbp, isPartial };
   }
 
-  it("uses the same calendar date in the previous month", () => {
-    expect(sameDateLastMonth("2026-10-28")).toBe("2026-09-28");
-    expect(sameDateLastMonth("2026-01-15")).toBe("2025-12-15");
-    expect(sameDateLastMonth("2025-03-31")).toBe("2025-02-28");
-    expect(sameDateLastMonth("2024-03-31")).toBe("2024-02-29");
+  it("keeps a payday snapshot that lands a day after the calendar month", () => {
+    const snapshots = [
+      point("sep", "2026-09-27 12:00:00", 2679),
+      point("oct", "2026-10-28 12:00:00", 3200),
+      point("nov", "2026-11-27 12:00:00", 4678),
+    ];
+
+    const baseline = snapshotAsOfLastMonth(snapshots, "2026-11-27");
+    expect(baseline?.id).toBe("oct");
+    expect(formatSnapshotDayLabel(baseline!.takenAt)).toBe("28 Oct");
   });
 
-  it("picks the latest snapshot on or before that date, not the previous check-in", () => {
+  it("skips a check-in that is only 20 days before the latest", () => {
+    const snapshots = [
+      point("oct", "2026-10-28 12:00:00", 3200),
+      point("too-soon", "2026-11-07 12:00:00", 4000),
+      point("nov", "2026-11-27 12:00:00", 4678),
+    ];
+
+    expect(snapshotAsOfLastMonth(snapshots, "2026-11-27")?.id).toBe("oct");
+  });
+
+  it("picks the latest snapshot at least 21 days before the latest one", () => {
     const snapshots = [
       point("aug", "2026-08-02 12:00:00", 10000),
       point("sep-early", "2026-09-01 09:00:00", 11000),
@@ -188,13 +203,14 @@ describe("snapshotAsOfLastMonth", () => {
       point("oct", "2026-10-20 09:00:00", 21468),
     ];
 
-    expect(snapshotAsOfLastMonth(snapshots, "2026-10-28")?.id).toBe("sep-cutoff");
+    expect(snapshotAsOfLastMonth(snapshots, "2026-10-28")?.id).toBe("sep-late");
   });
 
-  it("keeps a snapshot taken later on the cutoff day", () => {
+  it("keeps the later snapshot when both fall on the cutoff day", () => {
     const snapshots = [
-      point("morning", "2026-09-28 08:00:00", 10000),
-      point("evening", "2026-09-28 20:00:00", 11000),
+      point("morning", "2026-09-29 08:00:00", 10000),
+      point("evening", "2026-09-29 20:00:00", 11000),
+      point("latest", "2026-10-20 09:00:00", 12000),
     ];
 
     expect(snapshotAsOfLastMonth(snapshots, "2026-10-28")?.id).toBe("evening");
