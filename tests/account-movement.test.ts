@@ -33,7 +33,7 @@ describe("accountMovement", () => {
   });
 });
 
-describe("month-ago label", () => {
+describe("since card label", () => {
   it("names the snapshot date, including the earliest fallback", () => {
     expect(formatSnapshotDayLabel("2026-10-27T09:00:00.000Z")).toBe("27 Oct");
     const earliest = {

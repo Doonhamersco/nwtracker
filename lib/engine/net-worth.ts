@@ -163,25 +163,22 @@ export function formatSnapshotDayLabel(takenAt: string): string {
   });
 }
 
-/**
- * The same calendar day in the previous month. A day that does not exist
- * there, such as 31 March, lands on the last day of that month.
- */
-export function sameDateLastMonth(isoDate: string): string {
+/** Payday check-ins drift by a day or two, so a strict calendar month drops them. */
+export const MONTHLY_BASELINE_DAYS = 21;
+
+function shiftIsoDate(isoDate: string, days: number): string {
   const [year, month, day] = isoDate.split("-").map(Number);
-  const previous = new Date(Date.UTC(year, month - 2, 1));
-  const daysInMonth = new Date(
-    Date.UTC(previous.getUTCFullYear(), previous.getUTCMonth() + 1, 0)
-  ).getUTCDate();
-  const cutoff = new Date(
-    Date.UTC(previous.getUTCFullYear(), previous.getUTCMonth(), Math.min(day, daysInMonth))
-  );
-  return cutoff.toISOString().slice(0, 10);
+  const shifted = new Date(Date.UTC(year, month - 1, day));
+  shifted.setUTCDate(shifted.getUTCDate() + days);
+  return shifted.toISOString().slice(0, 10);
 }
 
 /**
- * Latest committed snapshot on or before the same date last month.
- * When every snapshot is newer than that, the earliest one is the baseline.
+ * Baseline for the hero and the since card: the most recent committed snapshot
+ * at least three weeks before the latest one. Check-ins land around payday and
+ * can slip a day past the same calendar date, so 28 Oct still counts when the
+ * latest snapshot is 27 Nov. When nothing is that old, the earliest earlier
+ * snapshot is the baseline.
  */
 export function snapshotAsOfLastMonth<T extends SnapshotWorth>(
   snapshots: T[],
@@ -192,11 +189,18 @@ export function snapshotAsOfLastMonth<T extends SnapshotWorth>(
   );
   if (committed.length === 0) return null;
 
-  const cutoff = sameDateLastMonth(asOfDate);
-  const onOrBefore = committed.filter((snapshot) => snapshotDay(snapshot.takenAt) <= cutoff);
-  const pool = onOrBefore.length > 0 ? onOrBefore : committed;
-  const ranked = [...pool].sort((a, b) => takenAtMs(a.takenAt) - takenAtMs(b.takenAt));
-  return onOrBefore.length > 0 ? ranked[ranked.length - 1] : ranked[0];
+  const ranked = [...committed].sort((a, b) => takenAtMs(a.takenAt) - takenAtMs(b.takenAt));
+  const upToToday = ranked.filter((snapshot) => snapshotDay(snapshot.takenAt) <= asOfDate);
+  const pool = upToToday.length > 0 ? upToToday : ranked;
+  const latest = pool[pool.length - 1];
+  const cutoff = shiftIsoDate(snapshotDay(latest.takenAt), -MONTHLY_BASELINE_DAYS);
+  const oldEnough = pool.filter(
+    (snapshot) => snapshot.id !== latest.id && snapshotDay(snapshot.takenAt) <= cutoff
+  );
+  if (oldEnough.length > 0) return oldEnough[oldEnough.length - 1];
+  const earlier = pool.filter((snapshot) => snapshot.id !== latest.id);
+  if (earlier.length > 0) return earlier[0];
+  return latest;
 }
 
 function roundMoney(value: number): number {

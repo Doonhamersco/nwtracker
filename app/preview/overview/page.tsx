@@ -35,6 +35,9 @@ export default function OverviewPreviewPage() {
     { id: "s4", takenAt: "2026-08-01T09:00:00.000Z", netWorthGbp: 107200, physicalAssetsGbp: 0, isPartial: false, notes: null },
     { id: "s5", takenAt: "2026-09-01T09:00:00.000Z", netWorthGbp: 110400, physicalAssetsGbp: 0, isPartial: false, notes: null },
     { id: "s6", takenAt: "2026-10-01T09:00:00.000Z", netWorthGbp: 113800, physicalAssetsGbp: 0, isPartial: false, notes: null },
+    { id: "s7", takenAt: "2026-09-27T12:00:00.000Z", netWorthGbp: 112000, physicalAssetsGbp: 0, isPartial: false, notes: null },
+    { id: "s8", takenAt: "2026-10-28T12:00:00.000Z", netWorthGbp: 116400, physicalAssetsGbp: 0, isPartial: false, notes: null },
+    { id: "s9", takenAt: "2026-11-27T12:00:00.000Z", netWorthGbp: 120000, physicalAssetsGbp: 0, isPartial: false, notes: null },
   ];
   const physicalAssetsGbp = 12500;
   const snapshots = withCurrentPhysicalAssets(accountSnapshots, physicalAssetsGbp);
