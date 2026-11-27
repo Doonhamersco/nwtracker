@@ -4,6 +4,7 @@ export const submitValuationSchema = z.object({
   accountId: z.string().uuid(),
   valueNative: z.number().finite(),
   isCarriedForward: z.boolean(),
+  netDepositGbp: z.number().finite().nullable().optional(),
 });
 
 export const submitMetricReadingSchema = z.object({

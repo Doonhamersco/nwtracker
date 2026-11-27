@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useId, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Area,
   CartesianGrid,
@@ -49,6 +50,17 @@ const LEFT_AXIS = 56;
 const RIGHT_AXIS = 44;
 const SYNC_ID = "nw-dashboard";
 
+function snapshotFromChartEvent(
+  state: { activeLabel?: unknown; activeIndex?: unknown; activeTooltipIndex?: unknown } | undefined,
+  chartData: ChartDataPoint[]
+): string | null {
+  const label = Number(state?.activeLabel);
+  const byLabel = Number.isFinite(label) ? chartData.find((point) => point.ts === label) : undefined;
+  const index = Number(state?.activeIndex ?? state?.activeTooltipIndex);
+  const byIndex = Number.isInteger(index) ? chartData[index] : undefined;
+  return byLabel?.snapshotId ?? byIndex?.snapshotId ?? null;
+}
+
 export function NetWorthChart({
   snapshots,
   timeframe,
@@ -59,6 +71,13 @@ export function NetWorthChart({
   hideDebt = false,
   variant = "default",
 }: NetWorthChartProps) {
+  const router = useRouter();
+  const openSnapshot = useCallback(
+    (snapshotId: string | null) => {
+      if (snapshotId) router.push(`/snapshots/${snapshotId}`);
+    },
+    [router]
+  );
   const accentColor = useAccentColor();
   const palette = paletteFromAccent(accentColor);
   const gradientId = useId().replace(/:/g, "");
@@ -89,7 +108,7 @@ export function NetWorthChart({
   if (loading) return <Skeleton className="h-64 w-full" />;
 
   const cutoff = timeframeCutoff(timeframe);
-  const dateMap = new Map<string, { netWorth: number | null; weight: number | null }>();
+  const dateMap = new Map<string, { netWorth: number | null; weight: number | null; snapshotId: string | null }>();
 
   const netWorthSnapshots = snapshots
     .filter((snapshot) => snapshot.netWorthGbp !== null && (!cutoff || new Date(snapshot.takenAt) >= cutoff))
@@ -97,13 +116,13 @@ export function NetWorthChart({
 
   for (const snapshot of netWorthSnapshots) {
     const iso = snapshot.takenAt.slice(0, 10);
-    const existing = dateMap.get(iso) ?? { netWorth: null, weight: null };
-    dateMap.set(iso, { ...existing, netWorth: snapshot.netWorthGbp });
+    const existing = dateMap.get(iso) ?? { netWorth: null, weight: null, snapshotId: null };
+    dateMap.set(iso, { ...existing, netWorth: snapshot.netWorthGbp, snapshotId: snapshot.id });
   }
 
   const filteredWeight = weightReadings.filter((reading) => !cutoff || new Date(reading.date) >= cutoff);
   for (const reading of filteredWeight) {
-    const existing = dateMap.get(reading.date) ?? { netWorth: null, weight: null };
+    const existing = dateMap.get(reading.date) ?? { netWorth: null, weight: null, snapshotId: null };
     dateMap.set(reading.date, { ...existing, weight: reading.weightKg });
   }
 
@@ -122,7 +141,7 @@ export function NetWorthChart({
   let prevTs: number | undefined;
 
   for (const iso of sortedIso) {
-    const { netWorth, weight } = dateMap.get(iso)!;
+    const { netWorth, weight, snapshotId } = dateMap.get(iso)!;
     const date = new Date(`${iso}T12:00:00`);
     const point: ChartDataPoint = {
       ts: date.getTime(),
@@ -137,6 +156,7 @@ export function NetWorthChart({
       prevTs,
       weight,
       moves: movesByDate[iso] ?? [],
+      snapshotId,
     };
     chartData.push(point);
     if (netWorth !== null) {
@@ -242,13 +262,16 @@ export function NetWorthChart({
 
       <div
         ref={measure}
-        className={`w-full min-w-0 ${isHero ? "h-72 sm:h-80 lg:h-[22rem]" : "h-52 sm:h-64"}`}
+        className={`w-full min-w-0 cursor-pointer ${isHero ? "h-72 sm:h-80 lg:h-[22rem]" : "h-52 sm:h-64"}`}
       >
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={chartData}
             syncId={SYNC_ID}
+            style={{ cursor: "pointer" }}
             margin={{ top: 8, right: rightReserve, left: 0, bottom: 0 }}
+            onClick={(state) => openSnapshot(snapshotFromChartEvent(state, chartData))}
+            onTouchEnd={(state) => openSnapshot(snapshotFromChartEvent(state, chartData))}
           >
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -285,8 +308,13 @@ export function NetWorthChart({
               tickLine={false}
             />
             <Tooltip
+              wrapperStyle={{ pointerEvents: "auto", outline: "none" }}
               content={
-                <ChartTooltip visible={visible} hideDebt={hideDebt} />
+                <ChartTooltip
+                  visible={visible}
+                  hideDebt={hideDebt}
+                  onOpen={(snapshotId) => router.push(`/snapshots/${snapshotId}`)}
+                />
               }
             />
             {showZeroLine && (
@@ -311,7 +339,7 @@ export function NetWorthChart({
               dot={false}
               activeDot={
                 showNetWorth
-                  ? { r: 4, fill: accentColor, stroke: palette.bgCard, strokeWidth: 2 }
+                  ? { r: 6, fill: accentColor, stroke: palette.bgCard, strokeWidth: 2, style: { cursor: "pointer" } }
                   : false
               }
               connectNulls

@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/Card";
 import type { AccountMove, SeriesPoint } from "@/lib/dashboard-kpis";
 import {
   findLatestCommittedSnapshot,
+  formatSnapshotDayLabel,
   physicalAssetsInDisplayedWorth,
   snapshotAsOfLastMonth,
 } from "@/lib/engine/net-worth";
@@ -40,6 +41,7 @@ interface ValuationRow {
   valueGbp: number;
   isCarriedForward: boolean;
   createdAt: string;
+  netDepositGbp?: number | null;
 }
 
 interface AccountRow {
@@ -247,6 +249,7 @@ export function DashboardClient({
           <HeroTotal
             netWorthGbp={heroNetWorth}
             previousGbp={heroPrevious}
+            sinceLabel={monthAgoSnapshot ? formatSnapshotDayLabel(monthAgoSnapshot.takenAt) : null}
             loading={false}
             label={hideDebt ? "Liquid net worth" : "Net worth"}
           />
@@ -286,6 +289,18 @@ export function DashboardClient({
             hideAssets={hideAssets}
             monthlySubscriptionGbp={monthlySubscriptionGbp}
             activeSubscriptionCount={activeSubscriptionCount}
+            sinceLastMonth={
+              heroNetWorth !== null && heroPrevious !== null && monthAgoSnapshot
+                ? {
+                    delta: heroNetWorth - heroPrevious,
+                    percent:
+                      heroPrevious !== 0
+                        ? ((heroNetWorth - heroPrevious) / Math.abs(heroPrevious)) * 100
+                        : null,
+                    sinceLabel: formatSnapshotDayLabel(monthAgoSnapshot.takenAt),
+                  }
+                : null
+            }
           />
         </div>
         <div className="mt-8">

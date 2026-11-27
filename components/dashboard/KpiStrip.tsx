@@ -23,6 +23,8 @@ interface KpiStripProps {
   hideAssets?: boolean;
   monthlySubscriptionGbp: number;
   activeSubscriptionCount: number;
+  /** Same pounds and baseline date as the hero "since …" line. */
+  sinceLastMonth?: { delta: number; percent: number | null; sinceLabel: string } | null;
 }
 
 function formatGbp(value: number, digits = 0): string {
@@ -129,9 +131,19 @@ export function KpiStrip({
   hideAssets = false,
   monthlySubscriptionGbp,
   activeSubscriptionCount,
+  sinceLastMonth = null,
 }: KpiStripProps) {
-  const month = rollingChange(points, hideDebt, 30, 21, hideAssets);
   const year = rollingChange(points, hideDebt, 365, 46, hideAssets);
+  const month: ChangeStat = sinceLastMonth
+    ? {
+        delta: sinceLastMonth.delta,
+        percent: sinceLastMonth.percent,
+        spark:
+          sinceLastMonth.delta === 0
+            ? [0, 0]
+            : [0, sinceLastMonth.delta],
+      }
+    : { delta: null, percent: null, spark: [] };
   const windowed = sliceByTimeframe(points, timeframe);
   const assets = levelStat(windowed.map((point) => displayedAssetsGbp(point, hideAssets)));
   const debt = levelStat(windowed.map((point) => point.debtGbp));
@@ -144,7 +156,10 @@ export function KpiStrip({
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
-      <ChangeTile label="This month" stat={month} />
+      <ChangeTile
+        label={sinceLastMonth ? `Since ${sinceLastMonth.sinceLabel}` : "Since last check-in"}
+        stat={month}
+      />
       <ChangeTile label="Past year" stat={year} />
       <LevelTile label="Assets" stat={assets} />
       <LevelTile label="Debt" stat={debt} downIsGood />

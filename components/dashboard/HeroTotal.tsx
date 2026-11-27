@@ -4,6 +4,8 @@ import { NumberDisplay } from "@/components/ui/NumberDisplay";
 interface HeroTotalProps {
   netWorthGbp: number | null;
   previousGbp: number | null;
+  /** Calendar label of the baseline snapshot, such as "27 Oct". */
+  sinceLabel?: string | null;
   loading: boolean;
   label?: string;
 }
@@ -11,6 +13,7 @@ interface HeroTotalProps {
 export function HeroTotal({
   netWorthGbp,
   previousGbp,
+  sinceLabel = null,
   loading,
   label = "Net worth",
 }: HeroTotalProps) {
@@ -43,7 +46,7 @@ export function HeroTotal({
         <p className={`text-sm ${change >= 0 ? "text-positive" : "text-negative"}`}>
           {change >= 0 ? "+" : "−"}£
           {Math.abs(change).toLocaleString("en-GB", { maximumFractionDigits: 0 })}{" "}
-          since last month
+          since {sinceLabel ?? "the previous snapshot"}
         </p>
       )}
     </div>

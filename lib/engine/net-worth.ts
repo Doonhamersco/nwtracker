@@ -122,6 +122,17 @@ function snapshotDay(takenAt: string): string {
   return takenAt.trim().slice(0, 10);
 }
 
+/** "27 Oct" from a snapshot timestamp. Uses the stored calendar day. */
+export function formatSnapshotDayLabel(takenAt: string): string {
+  const [year, month, day] = snapshotDay(takenAt).split("-").map(Number);
+  if (!year || !month || !day) return snapshotDay(takenAt);
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
 /**
  * The same calendar day in the previous month. A day that does not exist
  * there, such as 31 March, lands on the last day of that month.

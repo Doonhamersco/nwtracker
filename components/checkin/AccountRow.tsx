@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/Badge";
+import { isInvestmentCategory } from "@/lib/accounts/investment";
 
 interface DraftValuation {
   accountId: string;
@@ -19,7 +20,9 @@ interface DraftValuation {
 interface AccountRowProps {
   account: DraftValuation;
   value: number;
+  netDepositGbp: number | null;
   onChange: (value: number, isCarriedForward: boolean) => void;
+  onDepositChange: (netDepositGbp: number | null) => void;
 }
 
 function getInputStep(currencyCode: string, coingeckoId: string | null): string {
@@ -29,7 +32,13 @@ function getInputStep(currencyCode: string, coingeckoId: string | null): string 
   return "0.01";
 }
 
-export function AccountRow({ account, value, onChange }: AccountRowProps) {
+export function AccountRow({
+  account,
+  value,
+  netDepositGbp,
+  onChange,
+  onDepositChange,
+}: AccountRowProps) {
   const step = getInputStep(account.currencyCode, account.coingeckoId);
   const previewGbp = value * account.currentFxRateToGbp;
   const isCarriedForward = account.isCarriedForward;
@@ -106,6 +115,29 @@ export function AccountRow({ account, value, onChange }: AccountRowProps) {
             <p className="text-xs text-muted mt-1 sm:hidden">
               ≈ £{previewGbp.toLocaleString("en-GB", { maximumFractionDigits: 0 })}
             </p>
+          )}
+          {isInvestmentCategory(account.category) && (
+            <label className="mt-2 block text-left">
+              <span className="text-[11px] uppercase tracking-wide text-muted">Net deposit (£)</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={netDepositGbp ?? ""}
+                placeholder="blank if none"
+                aria-label={`Net deposit for ${account.accountName}`}
+                onChange={(e) => {
+                  const raw = e.target.value.trim();
+                  if (!raw) {
+                    onDepositChange(null);
+                    return;
+                  }
+                  const num = Number(raw);
+                  onDepositChange(Number.isFinite(num) ? num : null);
+                }}
+                className="mt-1 w-full min-h-11 rounded-lg border border-border bg-bg-card px-3 py-2 text-sm font-mono text-text focus:border-accent focus:outline-none sm:w-36"
+              />
+            </label>
           )}
         </div>
 
