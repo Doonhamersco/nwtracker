@@ -1,6 +1,8 @@
 "use client";
 
 import { Badge } from "@/components/ui/Badge";
+import { MovementFigure } from "@/components/accounts/MovementFigure";
+import { accountMovement } from "@/lib/engine/account-movement";
 
 interface ValuationRow {
   id: string;
@@ -9,6 +11,7 @@ interface ValuationRow {
   valueGbp: number;
   isCarriedForward: boolean;
   createdAt: string;
+  netDepositGbp?: number | null;
 }
 
 interface AccountRow {
@@ -43,12 +46,11 @@ function formatNative(value: number, currency: string): string {
 interface TableRowData {
   account: AccountRow;
   valuation: ValuationRow;
-  momChange: number | null;
-  momPercent: number | null;
+  movement: ReturnType<typeof accountMovement>;
 }
 
 function AccountTableRow({ row }: { row: TableRowData }) {
-  const { account, valuation, momChange, momPercent } = row;
+  const { account, valuation, movement } = row;
   const isLiability = account.type === "LIABILITY";
 
   return (
@@ -75,20 +77,7 @@ function AccountTableRow({ row }: { row: TableRowData }) {
         </span>
       </td>
       <td className="px-4 py-3 text-right">
-        {momChange !== null ? (
-          <span className={`font-mono text-sm ${momChange >= 0 ? "text-positive" : "text-negative"}`}>
-            {momChange >= 0 ? "▲" : "▼"} £
-            {Math.abs(momChange).toLocaleString("en-GB", { maximumFractionDigits: 0 })}
-            {momPercent !== null && (
-              <span className="text-xs ml-1 opacity-75">
-                ({momPercent >= 0 ? "+" : ""}
-                {momPercent.toFixed(1)}%)
-              </span>
-            )}
-          </span>
-        ) : (
-          <span className="text-muted text-xs">—</span>
-        )}
+        <MovementFigure movement={movement} />
       </td>
       <td className="px-4 py-3 text-right">
         <span className="text-xs text-muted">
@@ -119,12 +108,12 @@ function buildRows(
     .map((v) => {
       const account = accountMap.get(v.accountId)!;
       const prev = prevMap.get(v.accountId);
-      const momChange = prev !== undefined ? v.valueGbp - prev.valueGbp : null;
-      const momPercent =
-        momChange !== null && prev && prev.valueGbp !== 0
-          ? (momChange / prev.valueGbp) * 100
-          : null;
-      return { account, valuation: v, momChange, momPercent };
+      const movement = accountMovement(
+        v.valueGbp,
+        prev ? prev.valueGbp : null,
+        v.netDepositGbp == null ? null : [v.netDepositGbp]
+      );
+      return { account, valuation: v, movement };
     })
     .sort((a, b) => b.valuation.valueGbp - a.valuation.valueGbp);
 }
@@ -132,7 +121,7 @@ function buildRows(
 const TABLE_HEADER = (
   <thead>
     <tr className="border-b border-border">
-      {["Account", "Type", "Value (GBP)", "Native", "MoM Change", "Last Updated"].map(
+      {["Account", "Type", "Value (GBP)", "Native", "Change", "Last Updated"].map(
         (col) => (
           <th
             key={col}

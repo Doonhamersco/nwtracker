@@ -41,6 +41,7 @@ export default async function DashboardPage() {
     valueGbp: v.valueGbp,
     isCarriedForward: v.isCarriedForward,
     createdAt: v.createdAt,
+    netDepositGbp: v.netDepositGbp,
   }));
 
   const previousValuations = (previousDetail?.valuations ?? []).map((v) => ({
@@ -50,6 +51,7 @@ export default async function DashboardPage() {
     valueGbp: v.valueGbp,
     isCarriedForward: v.isCarriedForward,
     createdAt: v.createdAt,
+    netDepositGbp: v.netDepositGbp,
   }));
 
   const accountRows = allAccounts.map((a) => ({

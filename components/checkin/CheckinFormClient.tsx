@@ -42,6 +42,7 @@ interface CheckinDraft {
 interface ValuationState {
   valueNative: number;
   isCarriedForward: boolean;
+  netDepositGbp: number | null;
 }
 
 interface CheckinFormClientProps {
@@ -58,6 +59,7 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
         init[acc.accountId] = {
           valueNative: acc.lastValueNative ?? 0,
           isCarriedForward: acc.isCarriedForward,
+          netDepositGbp: null,
         };
       }
       return init;
@@ -98,6 +100,7 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
             accountId,
             valueNative: v.valueNative,
             isCarriedForward: v.isCarriedForward,
+            netDepositGbp: v.netDepositGbp,
           })),
           metrics: Object.entries(metrics)
             .filter(([, v]) => v !== null)
@@ -154,10 +157,25 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
                 key={acc.accountId}
                 account={acc}
                 value={valuations[acc.accountId]?.valueNative ?? 0}
+                netDepositGbp={valuations[acc.accountId]?.netDepositGbp ?? null}
                 onChange={(val, cf) =>
                   setValuations((prev) => ({
                     ...prev,
-                    [acc.accountId]: { valueNative: val, isCarriedForward: cf },
+                    [acc.accountId]: {
+                      valueNative: val,
+                      isCarriedForward: cf,
+                      netDepositGbp: prev[acc.accountId]?.netDepositGbp ?? null,
+                    },
+                  }))
+                }
+                onDepositChange={(netDepositGbp) =>
+                  setValuations((prev) => ({
+                    ...prev,
+                    [acc.accountId]: {
+                      valueNative: prev[acc.accountId]?.valueNative ?? 0,
+                      isCarriedForward: prev[acc.accountId]?.isCarriedForward ?? false,
+                      netDepositGbp,
+                    },
                   }))
                 }
               />
@@ -182,12 +200,18 @@ export function CheckinFormClient({ draft }: CheckinFormClientProps) {
                 key={acc.accountId}
                 account={acc}
                 value={valuations[acc.accountId]?.valueNative ?? 0}
+                netDepositGbp={null}
                 onChange={(val, cf) =>
                   setValuations((prev) => ({
                     ...prev,
-                    [acc.accountId]: { valueNative: val, isCarriedForward: cf },
+                    [acc.accountId]: {
+                      valueNative: val,
+                      isCarriedForward: cf,
+                      netDepositGbp: null,
+                    },
                   }))
                 }
+                onDepositChange={() => {}}
               />
             ))}
           </div>

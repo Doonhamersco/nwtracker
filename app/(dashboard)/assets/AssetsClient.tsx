@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
 import { Badge } from "@/components/ui/Badge"
+import { MovementFigure } from "@/components/accounts/MovementFigure"
 import { useAccentColor } from "@/components/layout/ProfileProvider"
+import type { AccountMovement } from "@/lib/engine/account-movement"
 
 export interface AccountWithHistory {
   id: string
@@ -13,8 +14,8 @@ export interface AccountWithHistory {
   institution: string | null
   currentNative: number | null
   currentGbp: number | null
-  momChange: number | null
-  threeMonthChange: number | null
+  momChange: AccountMovement
+  threeMonthChange: AccountMovement
 }
 
 interface AssetsClientProps {
@@ -28,17 +29,6 @@ function fmt(value: number): string {
     currency: "GBP",
     maximumFractionDigits: 0,
   }).format(value)
-}
-
-function Change({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-muted text-xs">—</span>
-  const sign = value >= 0 ? "▲" : "▼"
-  const color = value >= 0 ? "text-positive" : "text-negative"
-  return (
-    <span className={`font-mono text-sm ${color}`}>
-      {sign} £{Math.abs(value).toLocaleString("en-GB", { maximumFractionDigits: 0 })}
-    </span>
-  )
 }
 
 function Section({
@@ -98,10 +88,10 @@ function Section({
               </span>
             </td>
             <td className="px-4 py-3 text-right">
-              <Change value={acc.momChange} />
+              <MovementFigure movement={acc.momChange} />
             </td>
             <td className="px-4 py-3 text-right">
-              <Change value={acc.threeMonthChange} />
+              <MovementFigure movement={acc.threeMonthChange} />
             </td>
           </tr>
         ))}
@@ -167,7 +157,7 @@ export function AssetsClient({ accounts, lastSnapshotDate }: AssetsClientProps) 
           <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-border">
-                {["Account", "Category", "Native", "GBP Value", "MoM Δ", "3M Δ"].map((h) => (
+                {["Account", "Category", "Native", "GBP Value", "Change", "3M change"].map((h) => (
                   <th
                     key={h}
                     className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted text-left last:text-right [&:nth-child(n+3)]:text-right"

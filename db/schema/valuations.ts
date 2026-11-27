@@ -21,6 +21,8 @@ export const accountValuations = sqliteTable(
     isCarriedForward: integer("is_carried_forward", { mode: "boolean" })
       .notNull()
       .default(false),
+    /** Cash added since the previous check-in, in GBP. Null when the user left it blank. */
+    netDepositGbp: real("net_deposit_gbp"),
     createdAt: text("created_at")
       .notNull()
       .default(sql`(datetime('now'))`),

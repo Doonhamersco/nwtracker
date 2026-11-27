@@ -6,13 +6,14 @@ interface ChartTooltipProps {
   payload?: Array<{ payload: ChartDataPoint }>;
   visible: Set<SeriesKey>;
   hideDebt: boolean;
+  onOpen?: (snapshotId: string) => void;
 }
 
 function visibleMoves(moves: AccountMove[], hideDebt: boolean): AccountMove[] {
   return hideDebt ? moves.filter((move) => move.type !== "LIABILITY") : moves;
 }
 
-export function ChartTooltip({ active, payload, visible, hideDebt }: ChartTooltipProps) {
+export function ChartTooltip({ active, payload, visible, hideDebt, onOpen }: ChartTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0]?.payload;
   if (!point) return null;
@@ -27,8 +28,28 @@ export function ChartTooltip({ active, payload, visible, hideDebt }: ChartToolti
   const moves = visibleMoves(point.moves, hideDebt).slice(0, 4);
   const hiddenCount = visibleMoves(point.moves, hideDebt).length - moves.length;
 
+  const snapshotId = point.snapshotId;
   return (
-    <div className="min-w-[180px] max-w-[240px] rounded-xl border border-border bg-bg-card px-3.5 py-2.5 shadow-lg">
+    <div
+      className={`min-w-[180px] max-w-[240px] rounded-xl border border-border bg-bg-card px-3.5 py-2.5 shadow-lg ${
+        snapshotId ? "cursor-pointer hover:border-accent" : ""
+      }`}
+      role={snapshotId ? "link" : undefined}
+      tabIndex={snapshotId ? 0 : undefined}
+      onClick={() => {
+        if (snapshotId) onOpen?.(snapshotId);
+      }}
+      onKeyDown={(event) => {
+        if (!snapshotId) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen?.(snapshotId);
+        }
+      }}
+      onTouchEnd={() => {
+        if (snapshotId) onOpen?.(snapshotId);
+      }}
+    >
       <p className="mb-1 text-xs text-muted">{point.date}</p>
       {visible.has("netWorth") && current !== null && (
         <>
@@ -64,6 +85,7 @@ export function ChartTooltip({ active, payload, visible, hideDebt }: ChartToolti
           )}
         </ul>
       )}
+      {snapshotId && <p className="mt-2 text-[11px] text-accent">View snapshot</p>}
     </div>
   );
 }

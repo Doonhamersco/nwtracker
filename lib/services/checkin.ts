@@ -23,6 +23,7 @@ import {
 } from "@/db/schema";
 import { fetchAllRatesForAccounts, type FxRateResult } from "./fx";
 import { computeNetWorthFromInputs } from "@/lib/engine/net-worth";
+import { netDepositForAccount } from "@/lib/accounts/investment";
 import { totalPhysicalAssetsGbp } from "@/lib/services/physical-assets";
 import { hevyClient } from "@/lib/hevy/client";
 import { hevyValueForMetric, readingsFromHevyStats } from "@/lib/hevy/metrics";
@@ -71,6 +72,8 @@ export interface SubmitValuation {
   valueNative: number;
   /** If true, user confirmed value unchanged from last snapshot */
   isCarriedForward: boolean;
+  /** Net cash added since the previous check-in. Negative is a withdrawal. Blank is omitted. */
+  netDepositGbp?: number | null;
 }
 
 export interface SubmitMetricReading {
@@ -240,6 +243,7 @@ export async function commitCheckin(
     .select({
       id: accounts.id,
       type: accounts.type,
+      category: accounts.category,
       currencyCode: accounts.currencyCode,
       coingeckoId: accounts.coingeckoId,
     })
@@ -266,6 +270,7 @@ export async function commitCheckin(
       fxRateToGbp: rate,
       isCarriedForward: v.isCarriedForward,
       currencyCode: acc.currencyCode,
+      netDepositGbp: netDepositForAccount(acc.category, v.netDepositGbp),
     };
   });
 
@@ -312,6 +317,7 @@ export async function commitCheckin(
           valueNative: v.valueNative,
           valueGbp: v.valueNative * v.fxRateToGbp,
           isCarriedForward: v.isCarriedForward,
+          netDepositGbp: v.netDepositGbp,
         })
         .run();
     }

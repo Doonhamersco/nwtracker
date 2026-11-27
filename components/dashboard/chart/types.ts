@@ -25,6 +25,7 @@ export interface ChartDataPoint {
   prevTs?: number;
   weight: number | null;
   moves: AccountMove[];
+  snapshotId: string | null;
 }
 
 export type { AccountMove };

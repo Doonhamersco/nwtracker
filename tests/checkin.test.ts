@@ -223,6 +223,25 @@ describe("commitCheckin", () => {
     expect(saved.isPartial).toBe(false);
   });
 
+  it("stores a net deposit on an ISA and ignores one on cash", async () => {
+    const isa = insertAccount({ name: "Hargreaves Lansdown", type: "ASSET", category: "ISA", currencyCode: "GBP" });
+    const cash = insertAccount({ name: "Chase UK", type: "ASSET", category: "CASH", currencyCode: "GBP" });
+
+    const result = await commitCheckin({
+      valuations: [
+        { accountId: isa.id, valueNative: 1043, isCarriedForward: false, netDepositGbp: 498 },
+        { accountId: cash.id, valueNative: 200, isCarriedForward: false, netDepositGbp: 50 },
+      ],
+      metrics: [],
+      notes: "Topped up the ISA",
+      isPartial: false,
+    });
+
+    const rows = db.select().from(accountValuations).where(eq(accountValuations.snapshotId, result.snapshotId)).all();
+    expect(rows.find((row) => row.accountId === isa.id)?.netDepositGbp).toBe(498);
+    expect(rows.find((row) => row.accountId === cash.id)?.netDepositGbp).toBeNull();
+  });
+
   it("includes physical assets in the materialised net worth", async () => {
     const { createPhysicalAsset } = await import("@/lib/services/physical-assets");
     const asset = insertAccount({ name: "Cash", type: "ASSET", currencyCode: "GBP" });
