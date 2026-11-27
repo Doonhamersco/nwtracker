@@ -18,9 +18,9 @@ import { useCheckinDueLabel, useDashboardPrefs } from "@/components/dashboard/us
 import { Card } from "@/components/ui/Card";
 import type { AccountMove, SeriesPoint } from "@/lib/dashboard-kpis";
 import {
+  displayedSnapshotWorth,
   findLatestCommittedSnapshot,
   formatSnapshotDayLabel,
-  physicalAssetsInDisplayedWorth,
   snapshotAsOfLastMonth,
 } from "@/lib/engine/net-worth";
 import { londonToday } from "@/lib/training/dates";
@@ -172,17 +172,13 @@ export function DashboardClient({
     hideDebtNow: boolean,
     hideAssetsNow: boolean
   ): number | null {
-    if (!snapshot || snapshot.netWorthGbp === null) return null;
-    let value = snapshot.netWorthGbp;
-    if (hideDebtNow) value += debtBySnapshot[snapshot.id] ?? 0;
-    if (hideAssetsNow) {
-      value -= physicalAssetsInDisplayedWorth(
-        snapshot,
-        latestCommittedId,
-        physicalAssetsGbp
-      );
-    }
-    return value;
+    return displayedSnapshotWorth(snapshot, {
+      hideDebt: hideDebtNow,
+      hideAssets: hideAssetsNow,
+      debtGbp: snapshot ? (debtBySnapshot[snapshot.id] ?? 0) : 0,
+      latestCommittedId,
+      currentPhysicalAssetsGbp: physicalAssetsGbp,
+    });
   }
 
   const chartSnapshots =
@@ -312,6 +308,7 @@ export function DashboardClient({
             weightReadings={initialWeightReadings}
             movesByDate={movesByDate}
             hideDebt={hideDebt}
+            hideAssets={hideAssets}
             variant="hero"
           />
         </div>

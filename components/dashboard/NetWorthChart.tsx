@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useAccentColor } from "@/components/layout/ProfileProvider";
 import { paletteFromAccent } from "@/lib/profile-theme";
 import { timeframeCutoff, type AccountMove, type Timeframe } from "@/lib/dashboard-kpis";
+import { snapshotHref } from "@/lib/snapshots/display";
 import { useDashboardPrefs } from "./useDashboardPrefs";
 import { ChartTooltip } from "./chart/ChartTooltip";
 import { clusterEvents } from "./chart/clusterEvents";
@@ -42,6 +43,7 @@ interface NetWorthChartProps {
   weightReadings?: WeightReading[];
   movesByDate?: Record<string, AccountMove[]>;
   hideDebt?: boolean;
+  hideAssets?: boolean;
   variant?: "default" | "hero";
 }
 
@@ -69,14 +71,15 @@ export function NetWorthChart({
   weightReadings = [],
   movesByDate = {},
   hideDebt = false,
+  hideAssets = false,
   variant = "default",
 }: NetWorthChartProps) {
   const router = useRouter();
   const openSnapshot = useCallback(
     (snapshotId: string | null) => {
-      if (snapshotId) router.push(`/snapshots/${snapshotId}`);
+      if (snapshotId) router.push(snapshotHref(snapshotId, hideDebt, hideAssets));
     },
-    [router]
+    [router, hideDebt, hideAssets]
   );
   const accentColor = useAccentColor();
   const palette = paletteFromAccent(accentColor);
@@ -313,7 +316,7 @@ export function NetWorthChart({
                 <ChartTooltip
                   visible={visible}
                   hideDebt={hideDebt}
-                  onOpen={(snapshotId) => router.push(`/snapshots/${snapshotId}`)}
+                  onOpen={openSnapshot}
                 />
               }
             />
