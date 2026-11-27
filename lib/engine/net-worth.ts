@@ -81,6 +81,36 @@ export function findLatestCommittedSnapshot<T extends SnapshotWorth>(
 }
 
 /**
+ * The pounds drawn on the overview chart for one snapshot.
+ * `netWorthGbp` must already include the latest-point physical-asset swap
+ * (`withCurrentPhysicalAssets`) when this snapshot is that latest point.
+ * Hiding debt adds the liability total back. Hiding assets removes the
+ * physical-asset portion currently inside that displayed net worth.
+ */
+export function displayedSnapshotWorth(
+  snapshot: Pick<SnapshotWorth, "id" | "netWorthGbp" | "physicalAssetsGbp"> | null,
+  options: {
+    hideDebt: boolean;
+    hideAssets: boolean;
+    debtGbp: number;
+    latestCommittedId: string | null;
+    currentPhysicalAssetsGbp: number;
+  }
+): number | null {
+  if (!snapshot || snapshot.netWorthGbp === null) return null;
+  let value = snapshot.netWorthGbp;
+  if (options.hideDebt) value += options.debtGbp;
+  if (options.hideAssets) {
+    value -= physicalAssetsInDisplayedWorth(
+      snapshot,
+      options.latestCommittedId,
+      options.currentPhysicalAssetsGbp
+    );
+  }
+  return value;
+}
+
+/**
  * Physical-asset pounds sitting inside netWorthGbp after withCurrentPhysicalAssets.
  * The latest committed point holds today's total; earlier points hold the amount
  * stored at check-in.
