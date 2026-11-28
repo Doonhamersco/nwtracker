@@ -27,6 +27,7 @@ import { netDepositForAccount } from "@/lib/accounts/investment";
 import { totalPhysicalAssetsGbp } from "@/lib/services/physical-assets";
 import { hevyClient } from "@/lib/hevy/client";
 import { hevyValueForMetric, readingsFromHevyStats } from "@/lib/hevy/metrics";
+import { pickLatestCheckin, type CheckinStamp } from "@/lib/checkin-time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -513,6 +514,18 @@ export interface SnapshotSummary {
   physicalAssetsGbp: number | null;
   isPartial: boolean;
   notes: string | null;
+}
+
+/** Newest snapshot for the signed-in user, including partial check-ins. */
+export function getLatestCheckin(): CheckinStamp | null {
+  const rows = db
+    .select({
+      takenAt: snapshots.takenAt,
+      isPartial: snapshots.isPartial,
+    })
+    .from(snapshots)
+    .all();
+  return pickLatestCheckin(rows);
 }
 
 export function getSnapshotHistory(limit = 120): SnapshotSummary[] {

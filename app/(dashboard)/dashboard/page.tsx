@@ -2,6 +2,7 @@ import { inArray } from "drizzle-orm";
 import { db } from "@/db/client";
 import { accounts, accountValuations, subscriptions } from "@/db/schema";
 import {
+  getLatestCheckin,
   getSnapshotHistory,
   getSnapshotById,
   type SnapshotSummary,
@@ -20,6 +21,7 @@ export const metadata = {
 
 export default async function DashboardPage() {
   const snapshots: SnapshotSummary[] = getSnapshotHistory(120);
+  const latestCheckin = getLatestCheckin();
 
   // Only committed (non-partial) snapshots carry valuations and net worth
   const committedSnapshots = [...snapshots]
@@ -143,6 +145,7 @@ export default async function DashboardPage() {
         category: asset.category,
         valueGbp: asset.valueGbp,
       }))}
+      latestCheckin={latestCheckin}
     />
   );
 }

@@ -4,7 +4,8 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { closeAllDatabases, db } from "@/db/client";
-import { goals, transactionCategoryRules } from "@/db/schema";
+import { goals, snapshots, transactionCategoryRules } from "@/db/schema";
+import { getLatestCheckin } from "@/lib/services/checkin";
 import { createAccount, listAccounts } from "@/lib/services/accounts";
 import { createGoal, listGoals } from "@/lib/services/goals";
 import { getFile, saveFile } from "@/lib/services/files";
@@ -133,6 +134,43 @@ describe("per-user data isolation", () => {
       )
     ).toThrow(/Invalid storage path/);
     expect(fs.existsSync(path.join(tmp, "outside.txt"))).toBe(false);
+  });
+
+  it("reads each user's latest check-in from that user's database", () => {
+    runAsUser(OWNER, () => {
+      db.insert(snapshots)
+        .values({
+          id: randomUUID(),
+          takenAt: "2026-11-28T19:42:00.000Z",
+          isPartial: false,
+        })
+        .run();
+      db.insert(snapshots)
+        .values({
+          id: randomUUID(),
+          takenAt: "2026-11-28 19:50:00",
+          isPartial: true,
+        })
+        .run();
+    });
+    runAsUser(DAD, () => {
+      db.insert(snapshots)
+        .values({
+          id: randomUUID(),
+          takenAt: "2026-07-01 18:42:00",
+          isPartial: false,
+        })
+        .run();
+    });
+
+    expect(runAsUser(OWNER, () => getLatestCheckin())).toEqual({
+      takenAt: "2026-11-28 19:50:00",
+      isPartial: true,
+    });
+    expect(runAsUser(DAD, () => getLatestCheckin())).toEqual({
+      takenAt: "2026-07-01 18:42:00",
+      isPartial: false,
+    });
   });
 
   it("keeps Strava and Hevy tokens on the signed-in user", () => {
